@@ -1,0 +1,165 @@
+################## CURRENT PROCESS #################
+################## TODO ############################
+170208 JULIEN : GAEL et JULIEN Travail sur ASTEC
+remplacer a terme recfilter par linearfilter
+pour le moment il y a une erreur avec linearfilter car il n'accepte pas de 
+sigma <1 et sigma 2 = 0.15 / target resolution(0.3um) = 0.5
+170314 GAEL -> Julien : integration des methodes d'ACE dans la pipeline d'ASTEC,
+necessite de repasser par une phase de conception
+170320 GAEL -> Julien : integration des methodes d'ACE dans la pipeline d'ASTEC,
+necessite de repasser par une phase de conception
+#################### RELEASE #######################
+1-fuse.py et FUSION.py: fonction voxel size integree 
+remplacement de la fonction "def filter" par "def recfilter" car recfilter etait
+importe de usr/lib/python2.7/dist-packages
+################# LOG  #############################
+170208 JULIEN : avec Gael pour integrer des ameliorations a ASTEC
+170209 GAEL : modification d'ASTEC pour prendre en compte la resolution reelle 
+  des images. Tests d'integration realises et valides de l'etape 1-fuse.py 
+  jusqu'a l'etape 5-postcorrection.py sur des images provenant de Patrick.
+	Fichiers modifies : cpp_wrapping.py, ASTEC.py, 1-fuse.py, 
+	3-manualcorrection.py, 4-astec.py, 5-postcorrection.py, ascidians.py, 
+	FUSION.py, MARS.py, postcorrection.py
+170210 GAEL : ajout des etapes de verification des lignages produits par ASTEC 
+  aux etapes 4-astec.py, 5-postcorrection.py, 6-named.py. Enrichissement d'ASTEC
+  avec les fichiers README_Morpheme_lineage.txt, morpheme_lineage.py, 
+  lineage_test.py, pkl_converter.py
+170314 GAEL : - edition de cpp_wrapping.py : correction / enrichissement de 
+                methodes existantes, creation de nouvelles methodes pour GACE, 
+                LACE, GLACE et pour le recalage d'embryons
+              - remplacement du repertoire cpp par un lien symbolique vers 
+                /media/DATA/morpheme_privat/vt/ ; il s'agit d'une version A JOUR
+                et A MAINTENIR REGULIEREMENT A JOUR de la librairie vt
+              - ACE.py : contient les methodes GACE, LACE et GLACE permettant la
+                reconstruction d'images fusionnees respectivement globalement, 
+                localement par propagation de segmentation et semi-localement 
+                par propagation de segmentation
+170320 GAEL : mise a jour importante d'ACE pour pouvoir travailler en 
+              coordonnees reelles + CORRECTION MAJEURE pour la propagation 
+              des cellules : 
+              - 0-ace.py
+              - ACE.py
+              - cpp_wrapping.py
+              - MAJ de la librairie vt -> recompilation necessaire
+170321 GAEL : suppression de cpp* dans /usr/lib/python2.7/dist-packages car 
+	ces fichiers etaient charges par defaut alors qu'ils ne sont pas a jour
+	+ edition de FUSE.py, MARS.py, crop.py pour ajouter le bon dossier
+	CommunFunctions
+170322 GAEL : edition du crop.py car la fonction reech3d de cpp_wrapping avait
+        change d'interface. Cela induit cependant un leger effet de lissage
+        des images fusionnees. Dans les futures versions, nous remettons en 
+        place l'ancienne version de reech3d et donc de la fonction cropping de
+        crop.py.
+170323 GAEL : re-edition de crop.py (cropping), cpp_wrapping.py (reech3d) 
+	pour eviter le phenomene de lissage des images fusionnees induit par
+	la precedente MAJ ; enrichissement de cpp_wrapping.py (setVoxelValue,
+	setLabelValue, erodeLabels).
+170327 GAEL : - correction d'un comportement non souhaite dans GLACE (ACE.py)
+	- MAJ importante de ACE.py pour permettre le parellelisme 
+		- creation de light_LACE
+		- modification de LACE
+		- lancement en parallele de light_LACE dans GLACE
+	- MAJ de cpp_wrapping.py -> anisotropicHist 
+	- MAJ de la librairie vt -> anisotropicHist (recompilation necessaire)
+170329 GAEL : correction dans cpp_wrapping.py de setLabelValue et erodeLabel
+170405 GAEL : re-creation du lien vers la librairie vt (cpp)
+        + correction des valeurs de parametres par defaut de GLACE dans ACE.py
+170410 GAEL : edition de cpp_wrapping.py (creation de nouvelles methodes)
+	+ recompilation necessaire de la librairie vt (realisee sur hermione)
+	+ edition de GLACE et LACE et light_LACE dans ACE.py pour
+	  optimiser le parallelisme en travaillant sur des imagettes ("patchs")
+	-> TODO : controle etape de fusion...
+170523 GAEL : edition de FUSION.py due a l'apparition du bug suivant :
+
+	/media/DATA/170327-TEST_ASTEC-St1/ASTEC-170327/ASTEC/FUSION.pyc in
+	fusion(images_input, image_output, temporary_path, ori, mirrors,
+	targetResolution)
+	    262     final=final.astype(np.uint16)
+	    263     for i in range(len(images_input)):
+	--> 264 final+=(imread(registration_files[i])*imread(mask_files[i]))/full_mask
+	    265
+	    266     im_th=np.zeros((final.shape[0], final.shape[1], 1), dtype=np.uint16)
+	
+	TypeError: Cannot cast ufunc add output from dtype('float32') to
+	dtype('uint16') with casting rule 'same_kind' 
+170830 GAEL : importante mise a jour d'ASTEC pour toute la partie recalage
+  - MAJ de ACE.py (edition d'un assert pour plus de verbosite)
+  - MAJ de cpp_wrapping
+  - MAJ de REGISTRATION.py
+  - MAJ de morpheme_lineage.py
+  - MAJ de la nomenclature
+  - MAJ de la librairie vt
+  - ajout du fichier de LUT Fiji "glasbeyBGD.lut" (a copier-coller dans le
+    dossier "Fiji.app/luts/" pour acceder a cette LUT depuis Fiji)
+  - ajout d'un fichier d'exemple "example-registration.py" permettant de recaler
+    Ralph sur Patrick
+  Les nouvelles fonctionnalites permettent :
+  - d'initialiser les appariements de cellules entre deux sequences d'images
+  - de propager les appariements de cellules sur toute la duree de vie des 
+    embryons
+  - de generer des images avec un code couleur pratique pour la visualisation 
+    des resultats d'appariements
+170925 GAEL : MAJ de REGISTRATION.py : recalage temporel seq/seq base sur une
+  regression lineaire aux moindres carres des temps de divisions de cellules en
+  correspondance
+  + migration du projet ASTEC vers InriaForge (gforge) -> gestionnaire de 
+  version git :
+  git clone \
+  git+ssh://gmicheli@scm.gforge.inria.fr/gitroot/astec-package/astec-package.git
+171212 GAEL : MAJ de REGISTRATION.py et morpheme_lineage.py
+  REGISTRATION.py : ajouts et modifications pour le recalage temporel
+            + temporal_registration_distance_to_regression_for_pairings_validity
+            + weighting_fun_ncells
+            + temporal_registration_weighting
+            + volumes_variation_study_for_pairings_validity
+            + temporal_affine_registration_robust
+            M temporal_affine_registration 
+            M sisters_association
+  morpheme_lineage.py : adapte pour les modifications de REGISTRATION.py
+            + relabelled_lineage_lifespan # Returns the lifespan (tuple of two 
+              elements) of the complete lineage the given relabelled cell 
+              belongs to.
+            + relabelled_cells_at_time # Returns the sorted list of relabelled 
+              cells that are defined at given time
+            + relabelled_daughters # Returns the list of relabelled daughters 
+              of given label ([] if no daughters)
+            + relabelled_volume_at_time # Returns the volume of the cell 
+              defined by its (relabel) information at the at_time specified.
+            + relabelled_volumes # Returns the volume variation of the specified
+              relabelled cell from its birth to its death.
+              If specified, from t1 to t2 instead.
+  		        Parameter field_volume corresponds to the method 
+  		        extract_cell_volume volume field (default="real_volume").
+  		      + relabelled_growth_ratio # Returns the ratio of volumes 
+  		        volume_death/volume_birth of the specified relabelled cell 
+  		        between its birth and its death.
+  		      + relabelled_growth_ratios # Returns the dictionnary of ratios of 
+  		        volumes volume_t/volume_ of the specified relabelled cell between 
+  		        its birth and its death.
+            M birth, death
+
+180613 G. Malandain
+    1. Update of 1-fuse.py and ASTEC/FUSION.py
+        - different management of options
+	- classes for fusion parameters and environment
+	- allows alternative data management
+	- add XZ-plane intensity correction
+        ...
+     2. Update astec-package and morpheme-privat
+         previous git commit were
+         - astec-package
+	    commit 5c6bf9c6ccb3620a236bb7333a11a959d4f59078
+            Date:   Fri May 4 16:22:30 2018 +0200
+         - morpheme-privat
+	    commit 2ee4405bcebfad14010c6d9b40d06771b499a9a4
+            Date:   Thu May 3 09:33:04 2018 +0200
+
+         new git commit are 
+           - astec-package
+	    commit 587db98e8ce868ad66013bb5495e2e844fc8a215
+            Date:   Tue Jun 12 11:03:12 2018 +0200
+         - morpheme-privat
+	    commit e128a2e43d3763d433d275f5f7fbc20a636382f4
+            Date:   Fri Jun 8 16:42:13 2018 +0200
+
+

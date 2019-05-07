@@ -1,0 +1,2312 @@
+\documentclass{article}
+\usepackage{fullpage}
+\usepackage[usenames,dvipsnames]{xcolor}
+\usepackage[linesnumbered,boxed]{algorithm2e}
+\def \mycolor {red}
+
+\begin{document}
+
+Analyse de l'\'etape de propagation de segmentation
+
+version git 5c6bf9c du 2018-05-04 (derni\`ere version remont\'ee par G. Michelin)
+
+
+
+
+
+\tableofcontents
+
+
+
+
+
+\pagebreak
+\section{Overview}
+
+\subsection{Notations}
+
+\begin{itemize}
+\itemsep -0.5ex
+
+\item $S^{\star}_t$ : segmentation \`a $t$
+
+\item $S^{\star}_{t+\delta t \leftarrow t} = S^{\star}_t \circ \mathcal{T}_{t \leftarrow t+\delta t}$ : segmentation \`a $t$ projet\'ee dans $I_{t+\delta t}$. C'est une nouvelle notation par rapport \`a \cite{guignard:tel-01278725}, mais l'image est pas mal utilis\'ee.
+
+\item  $\tilde{S}_{t+1}$ : segmentation de $I_{t + \delta t}$ par ligne de partage des eaux avec les graines $S^e_{t+1 \leftarrow t} = S^e_t \circ \mathcal{T}_{t \leftarrow t+\delta t}$
+
+\item $\hat{S}_{t+1}$ : segmentation de $I_{t + \delta t}$ par ligne de partage des eaux avec les graines $\mathrm{Seeds}_{t+1}$. Cette image peut \^etre amen\'ee \`a changer
+
+\item $S^e_t$ : cellules de $S^{\star}_t$ \'erod\'ees (pour servir de graines)
+
+\item $S^e_{t+\delta t \leftarrow t} = S^e_t \circ \mathcal{T}_{t \leftarrow t+\delta t}$ : cellules de $S^{\star}_t$ \'erod\'ees (pour servir de graines) puis projet\'ees dans $I_{t+\delta t}$.
+
+\item $\mathrm{Seeds}_{t+1}$ : image des graines calcul\'ees avec les param\`etres optimaux. Cette image peut \^etre amen\'ee \`a changer
+
+\item $\mathcal{T}_{t \leftarrow t+\delta t}$ : transformation non-lin\'eaire permet
+tant de r\'e\'echantillonner $I_{t}$ sur  $I_{t + \delta t}$
+\end{itemize}
+
+
+
+
+
+\subsection{Overview}
+
+L'appel se fait par le fichier \texttt{4-astec.py}. C'est l\`a que se fait la boucle sur le temps pour segmenter successivement tous les points de temps. 
+
+La segmentation d'un point de temps $t + \delta t$ se fait par l'appel de la fonction \texttt{segmentation\_propagation()} (section \ref{sec:segmentation:propagation}, page \pageref{sec:segmentation:propagation}) avec en param\`etres les images fusionn\'ees, $I_{t}$ et $I_{t + \delta t}$ ainsi que la segmentation \`a $t$, $S^{\star}_t$.
+
+La plupart des param\`etres (longueurs, volumes) sont en unit\'e voxelique.
+
+
+\texttt{segmentation\_propagation()} (section \ref{sec:segmentation:propagation}, page \pageref{sec:segmentation:propagation}) fait les op\'erations suivantes
+\begin{itemize}
+\itemsep -0.5ex
+
+\item \texttt{non\_linear\_registration()} de \texttt{ASTEC/CommunFunctions/cpp\_wrapping.py} qui calcule  la transformation non-lin\'eaire $\mathcal{T}_{t \leftarrow t+\delta t}$, \`a partir des images fusionn\'ees
+
+\item \texttt{segmentation\_propagation\_seeds\_init\_and\_deform()} (section \ref{sec:segmentation:propagation:seeds:init:and:deform}, page \pageref{sec:segmentation:propagation:seeds:init:and:deform}),
+qui calcule $S^e_t$ et $S^e_{t+\delta t \leftarrow t}$
+\begin{displaymath}
+S^e_{t+\delta t \leftarrow t} = S^e_t \circ \mathcal{T}_{t \leftarrow t+\delta t}
+\end{displaymath}
+soit les graines projet\'ees (cellules de $S^{\star}_t$ \'erod\'ees puis transform\'ees dans $I_{t+\delta t}$) \cite[section 2.3.3.4]{guignard:tel-01278725}
+
+\item \texttt{apply\_trsf()} de \texttt{ASTEC/CommunFunctions/cpp\_wrapping.py} qui calcule $S^{\star}_{t+\delta t \leftarrow t} = S^{\star}_t \circ \mathcal{T}_{t \leftarrow t+\delta t}$, soit la segmentation \`a $t$ projet\'ee \`a $t + \delta t$
+
+\item Une autre image d'intensit\'e $I_{t + \delta t}$ peut \^etre calcul\'ee avec le rehaussement de membrane
+
+
+
+
+
+%
+% \texttt{segmentation\_propagation\_from\_seeds()}
+%
+\item \texttt{segmentation\_propagation\_from\_seeds()}, (section \ref{sec:segmentation:propagation:from:seeds}, page \pageref{sec:segmentation:propagation:from:seeds}) avec en param\`etres
+l'image de segmentation \`a $t$, $S^{\star}_t$,
+l'image d'intensit\'e \`a $t + \delta t$ sur un octet,  $I_{t+\delta t}$,
+$S^e_{t+1 \leftarrow t} = S^e_t \circ \mathcal{T}_{t \leftarrow t+\delta t}$, soit les graines projet\'ees (cellules de $S^{\star}_t$ \'erod\'ees puis transform\'ees dans $I_{t+\delta t}$). La transformation pourrait se faire en dehors de la fonction.
+
+\begin{itemize}
+\item Calcul de $\tilde{S}_{t+1}$ (une premi\`ere segmentation de $I_{t + \delta t}$) par ligne de partage des eaux avec les graines $S^e_{t+1 \leftarrow t} = S^e_t \circ \mathcal{T}_{t \leftarrow t+\delta t}$
+
+\item \texttt{get\_seeds()} (section \ref{sec:get:seeds}, page \pageref{sec:get:seeds}). Pour chaque cellule, et pour un ensemble de valeurs de $h \in [h_{min}, h_{max}]$ (avec un pas de 2, param\`etre en dur), \texttt{get\_seeds()} calcule (avec \texttt{cell\_propagation()}) le nombre de  $h$-minima qui sont strictement inclus dans la cellule $c$ de $\tilde{S}_{t+1}$ ($\mathrm{Count}^{h}(c)$ de \cite[section 2.3.3.5, page 71]{guignard:tel-01278725}). Cette op\'eration de s\'election des $h$-minima strictement inclus dans la cellule  $c$ de $\tilde{S}_{t+1}$ est faite plusieurs fois, on peut donc la mutualiser.
+
+
+
+
+
+\item \texttt{get\_back\_parameters()} (section \ref{sec:get:back:parameters}, page \pageref{sec:get:back:parameters}), qui d\'etermine pour chaque cellule, selon les nombres de $h$-minima inclus, le nombre optimal de graines \`a consid\'erer et les valeurs de param\`etres $(h, \sigma)$, associ\'es (on prend le plus grand $h$ donnant ce nombre de graines). Pour cela, on compte le nombre de fois qu'un nombre de $h$-minima est atteint, soit les grandeurs
+\begin{displaymath}
+N_{n}(c) = \mathrm{Card} \{ h | \mathrm{Count}^{h}(c) = n\}
+\quad 
+N_{n^{+}}(c) = \mathrm{Card} \{ h | \mathrm{Count}^{h}(c) \geq n\}
+\end{displaymath}
+et on calcule le score 
+\begin{displaymath}
+s(c) = N_{2^{+}}(c) . N_2(c)
+\end{displaymath}
+qui permet de d\'eterminer le nombre optimal de graines $\# seeds_{opt} $ (cf Alg. \ref{alg:get:back:parameters})
+
+\begin{algorithm}
+\uIf{$N_1(c) > 0$ or $N_2(c) > 0$}{
+  \uIf{$N_{2^{+}}(c) . N_2(c) \geq \tau$}{
+  \tcp{Rq: \cite[page 72]{guignard:tel-01278725} utilise une in\'egalit\'e stricte}
+  \tcp{$\tau$ est fix\'e \`a 25}
+    $\# seeds_{opt} = 2$
+  }
+  \uElseIf{$N_1(c) > 0$}{
+    $\# seeds_{opt} = 1$
+  }
+  \Else{
+    $\# seeds_{opt}  = 2$
+  }
+}
+\uElseIf{$N_3(c) > 0$}{
+  $\# seeds_{opt}  = 3$
+}
+\Else{
+  \tcp{cas o\`u $N_1(c) = N_2(c) = N_3(c) = 0$}
+  $\# seeds_{opt}  = 0$
+}
+\caption{\label{alg:get:back:parameters}\rule{0ex}{3ex}Choix du nombre de graines}
+\end{algorithm}
+Quelques remarques:
+\begin{itemize}
+\item Le score d\'epend du nombre de $h$ utilis\'es pour le calcul des graines, donc de $h_{min}$, de $h_{max}$ et du pas entre 2 $h$ successifs.
+\item Le nombre de $h$-minima est une fonction d\'ecroissante en fonction de $h$ (qui est born\'e inf\'erieurement par 1), donc on peut utiliser des longueurs d'intervalle plut\^ot que des d\'enombrements, et  ainsi s'abstraire de $h_{min}$ et du pas entre 2 $h$. Reste la d\'ependance par rapport \`a $h_{max}$
+\end{itemize}
+
+
+
+
+%
+% \texttt{get\_seeds\_from\_optimized\_parameters()}
+%
+\item \texttt{get\_seeds\_from\_optimized\_parameters()}
+(section \ref{sec:get:seeds:from:optimized:parameters}, page \pageref{sec:get:seeds:from:optimized:parameters}), qui va construire une image de graines $\mathrm{Seeds}_{t+1}$  \`a partir des nombres de graines calcul\'es par \texttt{get\_back\_parameters()}, et l'image de segmentation correspondante $\hat{S}_{t+1}$
+
+\begin{itemize}
+\item Pour les cellules qui ont des graines ($\# seeds \neq 0$, cf Alg. \ref{alg:get:back:parameters}), on r\'ecup\`ere les $h$-minima (pour les param\`etres optimaux trouv\'es) inclus dans la cellule (on les recalcule donc avec \texttt{extract\_seeds()} (section \ref{sec:extract:seeds}, page \pageref{sec:extract:seeds}), qui num\'erote aussi les composantes).
+
+Rq: si  $\# seeds = 3$ on ne garde que les 2 premi\`eres composantes num\'erot\'ees, ce qui me semble bizarre comme choix.
+
+\item Pour le fond, on r\'ecup\`ere  (avec \texttt{cell\_propagation()}) les $h_{max}$-minima strictement inclus dans le fond. Plut\^ot que de garder plusieurs num\'eros/labels pour ces graines, on pourrait toutes les mettre \`a 1, cela supprimerait des op\'erations (eg renum\'erotation de la segmentation) car ces graines ne seront pas remises en cause plus tard.
+
+\item Pour les cellules sans graines ($\# seeds = 0$, cf Alg. \ref{alg:get:back:parameters}, cas o\`u $N_1(c) = N_2(c) = N_3(c) = 0$), on regarde leur volume dans $\tilde{S}_{t+1}$. S'il est assez grand (sup\'erieur \`a 100 voxels), on r\'ecup\`ere la projection de la cellule m\`ere \'erod\'ee comme graine ($S^e_{t+\delta t \leftarrow t} = S^e_t \circ \mathcal{T}_{t \leftarrow t+\delta t}$)
+\end{itemize}
+
+Un appel \`a l'algorithme de ligne de partage des eaux permet de calculer l'image de segmentation $\hat{S}_{t+1}$ \`a partir des graines $\mathrm{Seeds}_{t+1}$. Cet appel pourrait \^etre sorti de la fonction.
+
+
+
+
+
+%
+% \texttt{volume\_checking()}
+%
+
+\item \texttt{volume\_checking()}
+(section \ref{sec:volume:checking}, page \pageref{sec:volume:checking}). C'est une fonction assez complexe. Elle vise \`a corriger les erreurs faites \`a l'\'etape pr\'ec\'edente. C'est plus ou moins bien d\'ecrit dans \cite[section 2.3.3.6, page 73]{guignard:tel-01278725}. Une des pr\'eoccupations est que les tests (informatiques) sont mal faits, ce qui peut (en th\'eorie) faire que des cas \'echappent aux traitements (ce qui est peut \^etre voulu), ou que des cas soient trait\'es deux fois (ce qui serait bizarre).
+
+\begin{itemize}
+
+\item On classe les cellules (ou les couples (m\`ere, fille(s))) selon les variations de volume entre la m\`ere (calcul\'e dans $S^{\star}_t$ ou issu du lin\'eage), et le volume des filles (calcul\'e dans $\hat{S}_{t+1}$).
+\begin{itemize}
+\item \verb|bigger| contient les couples (m\`ere, fille(s)) avec une augmentation de volume de plus de 10\%
+\item \verb|lower| contient les couples (m\`ere, fille(s)) avec une diminution de volume de plus de 10\%
+\item \verb|to_look_at| contient les couples (m\`ere, fille(s)) avec une diminution de volume de plus de 50\% (c'est donc un sous-ensemble de \verb|lower|)
+\item \verb|too_little| contient les couples (m\`ere, fille) o\`u la fille a un volume de moins de 1000 voxels
+\end{itemize}
+
+\item Traitement de \verb|to_look_at| (cf Alg. \ref{alg:volume:checking:to_look:at}, \cite[point (1), section 2.3.3.6, page 73]{guignard:tel-01278725}).
+
+\begin{itemize}
+\item On recalcule le nombre de graines optimales $\# seeds_{opt} $, comme dans l'Alg. \ref{alg:get:back:parameters}, 
+pour les cas  $N_1(c) > 0$ \textit{or} $N_2(c) > 0$, sauf que l'on garde le plus petit $h$ donnant le nombre de graines  $\# seeds_{opt} $ (c'\'etait le plus grand dans \texttt{get\_back\_parameters()}).
+\item On peut maintenant avoir trois graines (liste \verb|to_fuse_3| qui sera trait\'ee plus tard).
+\item la gestion des correspondances (filiation) est mal faite : des graines sont re-num\'erot\'ees, mais les filiations pr\'ec\'edentes ne sont pas effac\'ees.
+\end{itemize}
+
+\begin{algorithm}
+\uIf{$N_1(c) > 0$ or $N_2(c) > 0$}{
+  \uIf{$N_{2^{+}}(c) . N_2(c) \geq \tau$}{
+    $\# seeds_{opt} = 2$
+  }
+  \uElseIf{$N_1(c) > 0$}{
+    $\# seeds_{opt} = 1$
+  }
+  \Else{
+    $\# seeds_{opt}  = 2$
+  }
+  \uIf{$\# seeds_{opt}  = 1$ and $N_2(c) > 0$}{
+    \tcp{si on avait 1 graine optimale, mais des $h$ donnant 2 graines}
+    \tcp{on (re)calcule les graines ($\# seeds$) pour le premier $h$ qui donne 2 graines}
+    \tcp{et on ne garde que les graines incluses dans la cellule}
+    \uIf{$\# seeds = 2$ and \ldots}{
+      \tcp{la seconde partie de la condition me semble bizarre, et serait fausse tout le temps ...}
+      \tcp{C'est cens\'e d\'etecter le cas o\`u sur les 2 graines, l'une est en dehors de la cellule dans $\hat{S}_{t+1}$}
+      on passe \`a 2 graines
+    }
+  }
+  \uIf{($\# seeds_{opt}  = 1$ or $\# seeds_{opt}  = 2$) and $\exists n \geq 3 | N_n(c) > 0$}{
+    \tcp{cette condition peut \^etre v\'erifi\'ee en m\^eme temps que la pr\'ec\'edente}
+    \tcp{si on a par exemple $\# seeds_{opt}  = 1$,  $N_2(c) > 0$ et $N_3(c) > 0$}
+    \tcp{une cellule peut \^etre trait\'ee 2 fois \ldots}
+    on r\'ecup\`ere les $h_{min}$-minima (il y en a donc au moins 3)
+  }
+  \uElseIf{$\# seeds_{opt}  = 1$}{
+    \tcp{On a donc $\forall n \geq 3 | N_n(c) = 0$}
+    \tcp{cette condition peut \^etre v\'erifi\'ee en m\^eme temps que la premi\`ere}
+    \tcp{si on a par exemple $\# seeds_{opt}  = 1$ et $N_2(c) > 0$}
+    on r\'ecup\`ere la graine correspondante de $S^e_{t+\delta t \leftarrow t}$
+    \tcp{graine "projet\'ee", cens\'ee \^etre plus grande}
+  }
+}
+\uElseIf{$N_3(c) > 0$}{
+  \tcp{C'est le cas o\`u il n'y a pas de $h$ donnant 1 ou 2 graines. On avait auparavant pris les 2 premi\`eres graines.}
+  on permet d'avoir 3 graines, et on en fusionnera 2 plus tard
+}
+\caption{\label{alg:volume:checking:to_look:at}\rule{0ex}{3ex}Traitement de \texttt{to\_look\_at}  dans \texttt{volume\_checking()}.}
+\end{algorithm}
+
+\item Traitement de  \verb|too_little|. On enl\`eve la graine correspondant \`a la fille de volume trop petit dans $\mathrm{Seeds}_{t+1}$. Si c'est la seule fille, la m\`ere n'a donc plus de descendance.
+
+\item S'il y a eu des changements pr\'ec\'edemment, on recalcule une image de segmentation $\hat{S}_{t+1}$ et les volumes des cellules de  $\hat{S}_{t+1}$. Sinon, on pourrait sortir de la fonction, ce qui n'est pas fait.
+
+\item Recalcul de la liste \verb|lower| (le seuil de 10\% est en dur et non r\'eglable par une variable). A priori, il faudrait recalculer aussi les autres listes. 
+
+\item Traitement de  \verb|lower|.
+\begin{itemize}
+\item On fait la diff\'erence entre la cellule m\`ere de $S^{\star}_{t+\delta t \leftarrow t}$ et les cellules filles de $\hat{S}_{t+1}$, et on regarde si le label majoritaire dans cette diff\'erence est le fond. Si c'est le fond, on va mettre le couple (m\`ere, fille(s)) dans une liste \verb|exterior_correction|, sinon on ne fait rien.
+\item Traitement de  \verb|exterior_correction| \cite[d\'ebut du point (2), section 2.3.3.6, page 73]{guignard:tel-01278725} avec les morphosnakes dans des sous-images (\texttt{perform\_ac()}, section \ref{sec:perform:ac}, page \pageref{sec:perform:ac}), c'est ce qui peut prendre du temps.
+
+Dans \texttt{perform\_ac()}, on calcule une norme de gradient (vient de \verb|cpp_wrapping.py|), puis $g(I) = \frac{1}{\sqrt{1+ \alpha |\nabla G_{\sigma}* I|}}$ comme dans \cite[Eq. (24)]{marquez-neil:pami:2014}. Toutefois, cette \'equation est faite pour avoir une image de potentiel avec de faibles valeurs pour les contours (ie les membranes). Elle n'est donc pas adapt\'ee pour nos images (une inversion des valeurs de l'image pourrait \^etre plus ad\'equate).
+
+\item R\'eincorporation des r\'esultats dans  $\hat{S}_{t+1}$. 
+
+Attention, s'il y avait plusieurs filles (une division), elles sont fusionn\'ees et la filiation ne donne plus qu'une fille.
+\end{itemize}
+
+\item Traitement de  \verb|to_fuse_3|. On \'elimine la plus petite des 3 cellules et on l'affecte \`a celle des 2 autres avec laquelle elle partage le plus de fronti\`ere.
+
+\end{itemize}
+
+
+
+\item \texttt{outer\_correction()} (\cite[fin du point (2), section 2.3.3.6, page 73]{guignard:tel-01278725} )
+(section \ref{sec:outer:correction}, page \pageref{sec:outer:correction})
+On r\'ealise une ouverture morphologique sur le masque de l'embryon (un ouvert est toujours inclus dans l'objet de d\'epart) et on enl\`eve, pour les cellules filles de  \verb|exterior_correction|, les points enlev\'es par l'ouverture. 
+
+
+\end{itemize}
+
+\end{itemize}
+
+
+
+
+
+\pagebreak
+\section{\texttt{4-astec.py}}
+
+\begin{verbatim}
+[...]
+   115	### Building paths from nomenclature.py and parameters file
+   116	
+   117	path_fuse_exp = replaceFlags(path_fuse_exp, p)
+   118	print "Fused data will be searched in directory %s"%replaceFlags(path_fuse_exp,
+   119	                                                                 p)
+   120	assert os.path.isdir(path_fuse_exp), "Provided fuse directory '%s' not found"\
+   121	                                     %path_fuse_exp
+   122	path_fuse_exp_files = replaceFlags(path_fuse_exp_files, p)
+   123	
+   124	path_seg = replaceFlags(path_seg, p)
+   125	path_seg_exp = replaceFlags(path_seg_exp, p)
+   126	path_seg_exp_files = replaceFlags(path_seg_exp_files, p)
+   127	path_seg_exp_lineage = replaceFlags(path_seg_exp_lineage, p)
+   128	path_seg_exp_lineage_test = replaceFlags(path_seg_exp_lineage_test, p)
+   129	path_seg_exp_reconstruct=replaceFlags(path_seg_exp_reconstruct,p)
+   130	path_seg_exp_reconstruct_files=replaceFlags(path_seg_exp_reconstruct_files,p)
+   131	if not p.astec_keep_reconstruct_files:
+   132	    path_seg_exp_reconstruct_files = None
+   133	path_log_file = replaceFlags(path_seg_logfile, p)
+[...]
+   178	######################################
+   179	### Segmentation Propagation Stuff ###
+   180	######################################
+   181	
+   182	# ASTEC  segmentation propagation
+   183	
+   184	# Read the lineage tree (in case it was previously created)
+   185	lin_tree_information=read_lineage_tree(path_seg_exp_lineage) 
+   186	
+   187	begin=p.begin+p.raw_delay
+   188	end=p.end+p.raw_delay
+   189	
+   190	####SAFETY CHECK AFTER RELAUNCH
+[...]
+   228	### PROCESS PROPAGATION SEGMENTATION 
+   229	for t in range(begin, end):
+   230	    time_segment=t+p.delta #Time point of Segmentation 
+   231	    print 'Starting the segmentation at ' + str(time_segment)
+   232	    fused_file_ref=replaceTIME(path_fuse_exp_files, t) #Previous image file
+   233	    fused_file=replaceTIME(path_fuse_exp_files, time_segment) #To be segmented
+   234	    segmentation_file_ref=replaceTIME(path_seg_exp_files, t) #Prev. seg file
+   235	    segmentation_file=replaceTIME(path_seg_exp_files, time_segment) #Output seg
+   236	    reconstruct_file=None
+   237	
+   238	    if p.astec_keep_reconstruct_files:
+   239	        reconstruct_file=replaceTIME(path_seg_exp_reconstruct_files, \
+   240	                                     time_segment)
+   241	    #  TEMPORARY FOLDER
+   242	    temporary_folder=replaceTIME(os.path.join(path_seg_exp,'TEMP_'+FLAG_TIME),\
+   243	                                t)
+   244	    os.system("mkdir -p " + temporary_folder ) # Make temporary folder
+   245	
+   246	    vf_file=replaceTimes( \
+   247	            os.path.join( \
+   248	            temporary_folder,'VF_t'+FLAG_TIMEREF+'_on_t'+FLAG_TIMEFLO+'.inr' \
+   249	            ), {FLAG_TIMEREF:t,FLAG_TIMEFLO:time_segment}) 
+   250	    h_min_files=replaceTIME(os.path.join(temporary_folder, \
+   251	                            'h_min_t$TIME_h$HMIN_s$SIGMA.inr'),time_segment)
+   252	    seed_file=replaceTIME(os.path.join(temporary_folder,'Seed_t$TIME.inr'),t)
+   253	    print vf_file
+   254	    print h_min_files
+   255	    print seed_file
+   256	
+   257	    #PROCESS PROGATION SEGMENTATION
+   258	    seg_from_opt_h, lin_tree_information=segmentation_propagation( \
+   259	        t,fused_file_ref,segmentation_file_ref, fused_file,  \
+   260	        seed_file, vf_file, h_min_files,  \
+   261	        p.astec_h_min_min, p.astec_h_min_max, p.astec_sigma1,  \
+   262	        lin_tree_information, p.delta, p.astec_nb_proc, \
+   263	        membrane_reconstruction_method=p.astec_membrane_reconstruction_method,\
+   264	        fusion_u8_method=p.astec_fusion_u8_method, \
+   265	        flag_hybridation=p.astec_flag_hybridation, \
+   266	        RadiusOpening=p.astec_RadiusOpening, Thau=p.astec_Thau, \
+   267	        MinVolume=p.astec_MinVolume,  \
+   268	        VolumeRatioBigger=p.astec_VolumeRatioBigger, \
+   269	        VolumeRatioSmaller=p.astec_VolumeRatioSmaller, \
+   270	        MorphosnakeIterations=p.astec_MorphosnakeIterations, \
+   271	        NIterations=p.astec_NIterations, DeltaVoxels=p.astec_DeltaVoxels, \
+   272	        rayon_dil=p.astec_rayon_dil, \
+   273	        sigma_membrane=p.astec_sigma_membrane, \
+   274	        manual=p.astec_manual, \
+   275	        manual_sigma=p.astec_manual_sigma, \
+   276	        hard_thresholding=p.astec_hard_thresholding, \
+   277	        hard_threshold=p.astec_hard_threshold, \
+   278	        sensitivity=p.astec_sensitivity, \
+   279	        sigma_TV=p.astec_sigma_TV, \
+   280	        sigma_LF=p.astec_sigma_LF, \
+   281	        sample=p.astec_sample, \
+   282	        keep_membrane=False, keep_all=False,  nb_proc_ACE=p.astec_nb_proc_ace,\
+   283	        min_percentile=p.astec_min_percentile, \
+   284	        max_percentile=p.astec_max_percentile, \
+   285	        min_method=p.astec_min_method, max_method=p.astec_max_method,\
+   286	        sigma_hybridation=p.astec_sigma_hybridation, \
+   287	        path_u8_images=reconstruct_file, \
+   288	        verbose=True)
+\end{verbatim} 
+\color{\mycolor}
+Appel \`a \texttt{segmentation\_propagation()}, cf section \ref{sec:segmentation:propagation}, page \pageref{sec:segmentation:propagation}
+\begin{itemize}
+\itemsep -1ex
+\item \verb|t| : temps pour l'image de r\'ef\'erence, on va segmenter l'image suivante, ie $t+1$
+\item \verb|fused_file_ref| : nom de l'image d'intensite (fusionn\'ee) \`a $t$, $I_t$
+\item \verb|segmentation_file_ref| : nom de l'image de segmentation \`a $t$, $S^{\star}_t$
+\item \verb|fused_file| : nom de l'image d'intensite (fusionn\'ee) \`a $t+1$, $I_{t+1}$
+\item \verb|seed_file| : nom de l'image des graines
+\item \verb|vf_file| : nom de la  transformation non-lin\'eaire $\mathcal{T}_{t \leftarrow t+1}$
+\item \verb|h_min_files| : nom g\'en\'erique des images de $h_{min}$ (param\'etr\'e par \verb|TIME|, \verb|HMIN|, et \verb|SIGMA|)
+\end{itemize}
+\color{black}
+\begin{verbatim} 
+   290	    #SAVE OUTPUT
+   291	    print 'Write the segmentation in ' + segmentation_file
+   292	    imsave(segmentation_file, seg_from_opt_h)
+   293	    #Save the current lineage tree
+   294	    write_lineage_tree(path_seg_exp_lineage,lin_tree_information) 
+   295	    os.system("rm -rf  " + temporary_folder ) #delete temporary folder
+   296	
+   297	print 'ASTEC SEGMENTATION DONE'
+   298	
+   299	### PROCESS LINEAGE TREE FILE VERIFICATION
+   300	print 'PROCESS LINEAGE TREE VERIFICATION'
+   301	image_dict_seg=imageDict(path_seg_exp_files.replace(FLAG_TIME,"*"))
+   302	report=pkl_lineage_test(lin_tree_information, image_dict_seg, \
+   303	                         file_out=path_seg_exp_lineage_test)
+   304	print report
+   305	print 'LINEAGE TREE FILE VERIFICATION DONE'
+\end{verbatim}
+
+
+
+
+
+\section{\texttt{ASTEC/ASTEC.py}}
+
+\subsection{\texttt{compute\_volumes()}}
+\begin{verbatim}
+    14	def compute_volumes(im, labels = None, real = True):
+    15	    """
+    16	    Return a dictionary, { label: volume }
+    17	    im : SpatialImage (label image)
+    18	    labels : list of labels for which to compute the volumes (if None, all volumes are computed)
+    19	    """
+    20	    labels = np.unique(im)
+    21	
+    22	    volume = nd.sum(np.ones_like(im), im, index=np.int16(labels))
+    23	    return dict(zip(labels, volume))
+\end{verbatim}
+
+
+
+
+
+\subsection{\texttt{create\_seed()}}
+\label{sec:create:seed}
+\begin{verbatim}
+    26	def create_seed(parameters): 
+    27	    """
+    28	    Erodes the label i in the binary image tmp
+    29	    tmp : binary SpatialImage
+    30	    max_size_cell : size max allow for a cell (here put at np.inf)
+    31	    size_cell : size of the cell to erode
+    32	    iterations : maximum number of iterations for normal cells
+    33	    out_iterations : maximum number of iterations for exterior
+    34	    bb : bounding box if tmp in the global image (necessary when computing in parallel)
+    35	    i : label of the cell to erode
+    36	    """
+    37	    tmp, max_size_cell, size_cell, iterations, out_iterations, bb, i=parameters
+    38	    nb_iter=iterations
+    39	    if i==1:
+    40	        nb_iter=out_iterations
+    41	        opened=nd.binary_erosion(tmp, iterations=nb_iter)
+    42	        while len(nd.find_objects(opened))!=1 and nb_iter>=0:
+    43	            nb_iter-=1
+    44	            opened=nd.binary_erosion(tmp, iterations=nb_iter)
+    45	    else:
+    46	        opened=nd.binary_erosion(tmp, iterations=nb_iter)
+    47	        while len(nd.find_objects(opened))!=1 and nb_iter>=0:
+    48	            nb_iter-=1
+    49	            opened=nd.binary_erosion(tmp, iterations=nb_iter)
+    50	    if max_size_cell<size_cell:
+    51	        num=1
+    52	    else:
+    53	        num=i
+    54	    return opened, num, bb
+\end{verbatim}
+
+
+
+
+
+\subsection{\texttt{create\_seeds()}}
+\label{sec:create:seeds}
+\color{\mycolor}
+Retourne une \texttt{SpatialImage} o\`u les cellules de taille sup\'erieure \`a \verb|min_size_cell| (1000) sont \'erod\'ees d'au plus 10 it\'erations pour les cellules et 25 pour le fond.
+\color{black}
+\begin{verbatim}
+    57	def create_seeds(seg, max_size_cell=np.inf, min_size_cell=1000, iterations=10, out_iterations=25, nb_proc=26):
+    58	    """
+    59	    Erodes all the labels in the segmented image seg
+    60	    seg : Segmentation to erode (SpatialImage)
+    61	    max_size_cell : size maximum of a cell in number of voxels
+    62	    min_size_cell : size minimum of a cell in number of voxels
+    63	    iterations : maximum number of iterations for normal cells
+    64	    out_iterations : maximum number of iterations for exterior
+    65	    nb_proc : number maximum of processors allowed to be used
+    66	    """
+    67	    from multiprocessing import Process, Queue, Pool
+    68	    bboxes=nd.find_objects(seg)
+    69	    seeds=np.zeros_like(seg)
+    70	    a=np.unique(seg)
+    71	    pool=Pool(processes=nb_proc)
+    72	    count=0
+    73	    mapping=[]
+    74	    for i in a:
+    75	        tmp=seg[bboxes[i-1]]==i
+    76	        size_cell=np.sum(tmp)
+    77	        if size_cell>min_size_cell:
+    78	            count+=1
+    79	            mapping.append((tmp, \
+    80	                            max_size_cell, size_cell, \
+    81	                            iterations, out_iterations, \
+    82	                            bboxes[i-1], i))
+    83	    outputs=pool.map(create_seed, mapping)
+    84	    pool.close()
+    85	    pool.terminate()    
+    86	    for seed, num, bb in outputs:
+    87	        seeds[bb][seed]=num                         
+    88	    return SpatialImage(seeds, voxelsize=seg.voxelsize)
+\end{verbatim}
+
+
+
+
+
+\subsection{\texttt{cell\_propagation()}}
+\label{sec:cell:propagation}
+
+\color{\mycolor}
+Appel\'e par \texttt{get\_seeds()} (section \ref{sec:get:seeds}, page \pageref{sec:get:seeds}) et \texttt{get\_seeds\_from\_optimized\_parameters()} (section \ref{sec:get:seeds:from:optimized:parameters}, page \pageref{sec:get:seeds:from:optimized:parameters})
+
+
+Pour une sous-image contenant une cellule et une sous-image correspondant contenant des minima \'etiquet\'es, s\'electionne les minima strictement inclus dans la cellule, et renvoie leur nombre total. Cette proc\'edure est similaire \`a \texttt{extract\_seeds()} (section \ref{sec:extract:seeds}, page \pageref{sec:extract:seeds}), toutefois \texttt{extract\_seeds()} renvoie un nombre de graines d'au plus 3, et en s\'electionne au plus 2.
+\color{black}
+
+\begin{verbatim}
+    92	def cell_propagation(parameters):
+    93	    """
+    94	    Return the seeds in seeds_not_prop stricly included in cell c in seg_c
+    95	    seg_c : segmented image (SpatialImage)
+    96	    c : label of the cell to process
+    97	    seeds_not_prop : image of seeds (SpatialImage)
+    98	    """
+    99	    seg_c, c, seeds_not_prop=parameters
+\end{verbatim} 
+\color{\mycolor}
+\begin{itemize}
+\itemsep -1ex
+\item \verb|seg_c| : une sous-image o\`u la cellule est \`a $c$ et le reste \`a 1.
+\item \verb|c| : le label de la cellule
+\item \verb|seeds_not_prop| : la sous-image des $h$-minima \'etiquet\'es
+\end{itemize}
+\color{black}
+\begin{verbatim}
+   100	    if len(np.unique(seg_c))!=2: # DON'T MESS WITH THE SEEDS ! YOU NEED ONE AND ONLY ONE !!
+   101	        return
+   102	    seg_out=None
+   103	    labels=list(np.unique(seeds_not_prop[seg_c==c]))
+\end{verbatim} 
+\color{\mycolor}
+on r\'ecup\`ere les labels qui sont dans la cellule
+\color{black}
+\begin{verbatim}
+   104	    #if 0 in labels:
+   105	    labels.remove(0)#TODO Check if 0 is inside labels list 
+   106	    final_labels=[]
+   107	    for l in labels:
+   108	        if (seg_c[seeds_not_prop==l]==c).all():
+\end{verbatim} 
+\color{\mycolor}
+on v\'erifie que le $h$-minimum du label est enti\`erement dans la cellule 
+\color{black}
+\begin{verbatim}   
+   109	            final_labels.append(l)
+   110	    nb=len(final_labels)
+   111	    return seg_out, nb, final_labels, c
+\end{verbatim}
+\color{\mycolor}
+Retourne \texttt{None}, le nombre de $h$-minima, la liste des labels des $h$-minima, le label de la cellule
+\color{black}
+
+
+
+
+
+\subsection{\texttt{extract\_seeds()}}
+\label{sec:extract:seeds}
+
+\color{\mycolor}
+Appel\'e par \texttt{get\_seeds\_from\_optimized\_parameters()} (section \ref{sec:get:seeds:from:optimized:parameters}, page \pageref{sec:get:seeds:from:optimized:parameters}) et \texttt{volume\_checking()}
+(section \ref{sec:volume:checking}, page \pageref{sec:volume:checking}). Cette proc\'edure est similaire \`a \texttt{cell\_propagation()}
+(section \ref{sec:cell:propagation}, page \pageref{sec:cell:propagation}). 
+Cependant \texttt{extract\_seeds()} renvoie le nombre total de graines dans la cellule d'au plus 3, en en s\'electionnant au plus 2, alors que \texttt{cell\_propagation()} les d\'enombre toutes.
+\color{black}
+
+\begin{verbatim}
+   113	def extract_seeds(seg_c, c, path_seeds_not_prop=None, bb=None, accept_3_seeds=False):
+\end{verbatim} 
+\color{\mycolor}
+Appel\'e par \texttt{get\_seeds\_from\_optimized\_parameters} (section \ref{sec:get:seeds:from:optimized:parameters}, page \pageref{sec:get:seeds:from:optimized:parameters}). Il y a des similarit\'es avec \texttt{cell\_propagation()}
+\begin{itemize}
+\itemsep -1ex
+\item \verb|seg_c| : sous-image o\`u la cellule est \`a $c$ et le reste \`a 1
+\item \verb|c| : label de la cellule
+\item \verb|path_seeds_not_prop| : sous-image des $h$-minima, s'appelait \verb|seeds_ex| lors de l'appel. Les $h$-minima ont\'et\'e \'etiquet\'es par \texttt{find\_local\_minima()}
+\end{itemize}
+\color{black}
+\begin{verbatim}      
+   114	    """
+   115	    Return the seeds from seeds_not_prop stricly included in cell c from seg_c (the labels of the seeds go from 1 to 3)
+   116	    seg_c : segmented image (SpatialImage)
+   117	    c : label of the cell to process
+   118	    seeds_not_prop : image of seeds (can be the path to the image or the SpatialImage)
+   119	    bb : if seeds_not_prop is a path then bb is the bounding box of c in seeds_not_prop
+   120	    accept_3_seeds : True if 3 seeds can be accepted as a possible choice
+   121	    """
+   122	    if type(path_seeds_not_prop)!=SpatialImage:
+   123	        seeds_not_prop_out=imread(path_seeds_not_prop)
+   124	        seeds_not_prop=seeds_not_prop_out[bb]
+   125	    else: ## Then path_seeds_not_prop is the actual image we want to work with
+   126	        from copy import deepcopy
+   127	        seeds_not_prop=deepcopy(path_seeds_not_prop)
+   128	    labels=list(np.unique(seeds_not_prop[seg_c==c]))
+\end{verbatim} 
+\color{\mycolor}
+R\'ecup\`ere les labels des graines qui intersectent la cellule
+\color{black}
+\begin{verbatim}        
+   129	    labels.remove(0)
+   130	    final_labels=[]
+   131	    for l in labels:
+   132	        if (seg_c[seeds_not_prop==l]==c).all():
+   133	            final_labels.append(l)    
+\end{verbatim} 
+\color{\mycolor}
+Test si le label est enti\`erement inclus dans la cellule
+\color{black}
+\begin{verbatim}        
+   134	    if len(final_labels)==1:
+   135	        return (1, (seeds_not_prop==final_labels[0]).astype(np.uint8))
+   136	    elif len(final_labels)==2:
+   137	        return (2, ((seeds_not_prop==final_labels[0]) + 
+   138	                    2*(seeds_not_prop==final_labels[1])).astype(np.uint8))
+   139	    elif len(final_labels)==3 and not accept_3_seeds:# "too much seeds in the second extraction"
+   140	        return (3, ((seeds_not_prop==final_labels[0]) + 
+   141	                    2*(seeds_not_prop==final_labels[1])).astype(np.uint8))
+\end{verbatim} 
+\color{\mycolor}
+\verb|accept_3_seeds| est \`a \verb|False| par d\'efaut, et ne peut pas \^etre modifi\'e lors de l'appel d'\texttt{extract\_seeds()} par \texttt{get\_seeds\_from\_optimized\_parameters}, donc en cas de 3 graines, on ne num\'erote que les 2 premi\`eres, mais on renvoie un nombre de 3 graines quand m\^eme. 
+
+Les lignes ci-apr\`es ne sont  utili\'ees que par \texttt{volume\_checking()}. C'est le cas o\`u il y a eu une grosse diminution de volume (plus de 50\%) entre la m\`ere et les filles, et qu'il n'existe pas de $h$ donnant 1 ou 2 graines.
+\color{black}
+\begin{verbatim}        
+   142	    elif len(final_labels)==3 and accept_3_seeds: #"accept 3 seeds !"
+   143	        return (3, ((seeds_not_prop==final_labels[0]) + 
+   144	                    2*(seeds_not_prop==final_labels[1]) +
+   145	                    3*(seeds_not_prop==final_labels[2])).astype(np.uint8))
+\end{verbatim}
+\color{\mycolor}
+Retourne le nombre de labels, ainsi qu'une sous-image avec les graines \'etiquett\'ees \`a partir de 1.
+\color{black}
+
+
+
+
+
+\subsection{\texttt{slices\_dilation()}}
+\label{sec:slices:dilation}
+\begin{verbatim}
+   147	def __slices_dilation(slices, maximum=[np.inf, np.inf, np.inf]):
+   148	    return tuple([slice(max(0, s.start-1), min(s.stop+1, maximum[i])) for i, s in enumerate(slices)])
+   149	
+   150	def slices_dilation(slices, maximum=[np.inf, np.inf, np.inf], iterations=1):
+   151	    for i in range(iterations):
+   152	        slices=__slices_dilation(slices, maximum)
+   153	    return slices    
+\end{verbatim}
+
+
+
+
+
+\subsection{\texttt{to\_u8()}}
+\begin{verbatim}
+   156	def to_u8(im, lt=0):
+   157	    """
+   158	     Return a SpatialImage in unsigned int
+   159	    im : SpatialImage
+   160	    lt : if the smallest value in the intensity image can be "predicted"
+   161	    """
+   162	    from copy import deepcopy
+   163	    imcp=deepcopy(im)
+   164	    tmp=imcp[:,:,imcp.shape[2]/3]
+   165	    fper=np.percentile(tmp[tmp>=lt], 1)
+   166	    nper=np.percentile(tmp[tmp>=lt], 99)
+   167	    imcp[imcp<fper]=fper
+   168	    imcp[imcp>nper]=nper
+   169	    #im-=fper
+   170	    np.subtract(imcp, fper, out=imcp, casting='unsafe')
+   171	    return SpatialImage(np.uint8(np.linspace(0, 255, nper-fper+1), casting='unsafe')[imcp], voxelsize=imcp.voxelsize)
+\end{verbatim}
+
+
+
+
+
+\subsection{\texttt{get\_seeds()}}
+\label{sec:get:seeds}
+\color{\mycolor}
+Appel\'e par \texttt{segmentation\_propagation\_from\_seeds()},
+section \ref{sec:segmentation:propagation:from:seeds}
+
+Compte les $h$-minima strictement inclus dans la cellule pour un ensemble de valeurs de $h$
+\color{black}
+\begin{verbatim}
+   174	def get_seeds(seg, h_min_min,h_min_max, sigma, cells, fused_file, path_h_min, bounding_boxes, nb_proc=26, verbose=False):
+\end{verbatim} 
+\color{\mycolor}
+Appel \`a \texttt{get\_seeds()}, cf section \ref{sec:get:seeds}, page \pageref{sec:get:seeds}.
+\begin{itemize}
+\itemsep -1ex
+\item \verb|seg| : image de segmentation $\tilde{S}_{t+1}$. S'appelait \verb|segmentation| lors de l'appel
+\item \verb|h_min_min| : plus petite valeur de $h$ pour le calcul des $h$-minima
+\item \verb|h_min_max| : plus grande valeur de $h$ pour le calcul des $h$-minima
+\item \verb|sigma| : $\sigma$ pour le lissage gaussien avant le calcul des $h$-minima
+\item \verb|cells| : liste des cellules
+\item \verb|fused_file| : image originale $I_{t+1}$
+\item \verb|path_h_min| : nom g\'en\'erique pour les images de $h$-minima
+\item \verb|bounding_boxes| : boites englobantes des cellules
+\end{itemize}
+\color{black}
+\begin{verbatim}  
+   175	    """
+   176	    Return the number of seeds found for each cell in seg for different h_min values (from h_min_max down to 1)
+   177	    seg : Segmented image (SpatialImage)
+   178	    h_min_max : starting maximum value of h_min
+   179	    sigma : sigma of the gaussian smoothing (in voxels)
+   180	    cells : cells contained in seg
+   181	    fused_file : path (?) towards the fused image on which to perform the local minima detection
+   182	    path_h_min : format of h minima file names
+   183	    bounding_boxes : bounding boxes of the cells in seg (to fasten the computation)
+   184	    verbose : verbose mode (False or True)
+   185	    """
+   186	    from multiprocessing import Pool
+   187	    nb_cells={}
+   188	    treated=[]
+   189	    parameters={}
+   190	    mask=None
+   191	    temp_path_h_min=path_h_min.replace('$HMIN',str(h_min_max))
+   192	    if not os.path.exists(temp_path_h_min):
+   193	        seeds_not_prop, mask=find_local_minima(temp_path_h_min, fused_file, h_min_max, sigma=sigma, verbose=verbose)
+   194	    else:
+   195	        seeds_not_prop=imread(temp_path_h_min)
+\end{verbatim} 
+\color{\mycolor}
+\texttt{find\_local\_minima()} fait successivement un lissage gaussien, un calcul des $h$-minima (renvoie une image de "diff\'erence"), puis un seuillage par hysteresis avec un seuil bas de 1 et un seuil haut \`a $h$ (les composantes sont \'etiquet\'ees).
+Renvoie \verb|seeds_not_prop|, \texttt{SpatialImage} r\'esultat du seuillage par hyst\'er\'esis, et \verb|mask|, image de "diff\'erence" r\'esultat du calcul des $h$-minima. Du fait de la relation d'ordre pour les $h$-minima, on peut calculer les prochains (avec $h$ plus petit) dans cette image.
+\texttt{find\_local\_minima()} est dans \texttt{ASTEC/CommunFunctions/cpp\_wrapping.py}
+\color{black}
+\begin{verbatim}  
+   196	
+   197	    h_min=h_min_max
+   198	    tmp_nb=[]
+   199	    checking=True
+   200	    while (checking):
+   201	        mapping=[]
+   202	        tmp_nb=[]
+   203	        for c in cells:
+   204	            if not c in treated:
+   205	                bb=slices_dilation(bounding_boxes[c], maximum=seg.shape, iterations=2)
+   206	                seg_c=np.ones_like(seg[bb])
+   207	                seg_c[seg[bb]==c]=c
+   208	                mapping.append((seg_c, c, seeds_not_prop[bb]))
+\end{verbatim} 
+\color{\mycolor}
+Pour chaque cellule $c$, on dilate sa boite englobante, puis on construit une sous-image o\`u la cellule est \`a $c$ et le reste \`a 1.
+\color{black}
+\begin{verbatim}  
+   209	
+   210	        pool=Pool(processes=nb_proc)
+   211	        outputs=pool.map(cell_propagation, mapping)
+\end{verbatim} 
+\color{\mycolor}
+on passe \`a \texttt{cell\_propagation()} (section \ref{sec:cell:propagation}, page \pageref{sec:cell:propagation})
+\begin{itemize}
+\itemsep -1ex
+\item \verb|seg_c| : une sous-image o\`u la cellule est \`a $c$ et le reste \`a 1.
+\item \verb|c| : le label de la cellule
+\item \verb|seeds_not_prop[bb]| : la sous-image des $h$-minima \'etiquet\'es
+\end{itemize}
+\color{black}
+\begin{verbatim}  
+   212	        pool.close()
+   213	        pool.terminate()
+\end{verbatim} 
+\color{\mycolor}
+\texttt{cell\_propagation()} retourne
+\begin{itemize}
+\itemsep -1ex
+\item \verb|seg_c| : \texttt{None},
+\item \verb|nb| : le nombre de $h$-minima strictement inclus dans la cellule
+\item \verb|labels| : liste des labels de ces $h$-minima
+\item \verb|c| : le label de la cellule
+\end{itemize}
+\color{black}
+\begin{verbatim}  
+   214	        for seg_c_p, nb, labels, c in outputs:
+   215	            tmp_nb.append(nb)
+   216	            nb_cells.setdefault(c, []).append(nb)
+   217	            parameters.setdefault(c, []).append([h_min, sigma])
+   218	
+   219	        h_min-=2
+   220	        checking=h_min>=h_min_min and (((np.array(tmp_nb)<=2) & (np.array(tmp_nb)!=0)).any() or tmp_nb==[])
+   221	        if checking :
+   222	            temp_path_h_min=path_h_min.replace('$HMIN',str(h_min))
+   223	            if not os.path.exists(temp_path_h_min):
+   224	                seeds_not_prop, mask=find_local_minima(temp_path_h_min,fused_file, h_min, mask=mask, sigma=sigma, verbose=verbose)
+   225	            else:
+   226	                seeds_not_prop=imread(temp_path_h_min)
+   227	            if seeds_not_prop is None:
+   228	                checking=False
+   229	    return nb_cells, parameters
+\end{verbatim}
+\color{\mycolor}
+Retourne
+\begin{itemize}
+\itemsep -1ex
+\item \verb|nb_cells| : liste pour chaque cellule, du nombre de $h$-minima strictement inclus dans la cellule de  $\tilde{S}_{t+1}$
+\item \verb|parameters| : liste pour chaque cellule,  des param\`etres de calcul des $h$-minima ($h$ et $\sigma$)
+\end{itemize}
+\color{black}
+
+
+
+
+
+\subsection{\texttt{get\_back\_parameters()}}
+\label{sec:get:back:parameters}
+\color{\mycolor}
+Appel\'e par \texttt{segmentation\_propagation\_from\_seeds()},
+section \ref{sec:segmentation:propagation:from:seeds}
+\color{black}
+\begin{verbatim}
+   232	def get_back_parameters(nb_cells, parameters, lin_tree, cells,Thau=25):
+\end{verbatim} 
+\color{\mycolor}
+\begin{itemize}
+\itemsep -1ex
+\item \verb|nb_cells| : liste pour chaque cellule, du nombre de $h$-minima strictement inclus dans la cellule de  $\tilde{S}_{t+1}$. C'est le $\mathrm{Count}^{h}(c)$ de \cite[section 2.3.3.5, page 71]{guignard:tel-01278725}.
+\item \verb|parameters| : liste pour chaque cellule,  des param\`etres de calcul des $h$-minima ($h$ et $\sigma$)
+\item \verb|lin_tree| : fichier de lin\'eage
+\item \verb|cells| : liste des cellules
+\item \verb|Thau| : $\tau$ pour le calcul du score $s(c) = N_{2^{+}}(c) . N_2(c) > \tau$ \cite[page 72]{guignard:tel-01278725}.
+\end{itemize}
+\color{black}
+\begin{verbatim}
+   233	    """
+   234	    Return the correct h-minima value for each cell
+   235	    nb_cells : { cell: [#seeds, ] }: dict, key: cell, values: list of #seeds
+   236	    parameters : { cell: [[h_min, sigma], ]}: dict matching nb_cells, key: cell, values: list of parameters
+   237	    """
+   238	    lin_tree_back={ v:k for k, val in lin_tree.iteritems() for v in val }
+   239	    right_parameters={}
+   240	    cells_with_no_seed=[]
+   241	    ## 2 plateau size vs noise ##
+   242	    for c, s in nb_cells.iteritems():
+   243	        nb_2=np.sum(np.array(s)==2)
+   244	        nb_3=np.sum(np.array(s)>=2)
+   245	        score=nb_2*nb_3
+\end{verbatim} 
+\color{\mycolor}
+\verb|nb_2| et \verb|nb_3| repr\'esentent respectivement $N_2(c)$ et $N_{2^{+}}(c)$. La r\`egle est donc
+\begin{enumerate}
+\itemsep -1ex
+\item S'il existe des $h$ donnant 1 ou 2 graines
+\begin{enumerate}
+\itemsep -0.5ex
+\item si le score $s(c) = N_{2^{+}}(c) . N_2(c)$ est plus grand ou \'egal que $\tau$ (la th\`ese dit strictement), alors on garde 2 graines
+\item sinon ($s(c) = N_{2^{+}}(c) . N_2(c) <\tau$) et il existe des $h$ donnant 1 graine, alors on garde une graine
+\item sinon ($s(c) = N_{2^{+}}(c) . N_2(c) <\tau$ et il n'existe pas de $h$ donnant 1 graine) on garde 2 graines
+\end{enumerate}
+\item sinon (il n'existe pas de $h$ donnant 1 ou 2 graines) et il existe des $h$ donnant 3 graines, alors on garde 3 graines
+\item sinon  (il n'existe pas de $h$ donnant 1 ou 2 ou 3 graines), on dit qu'il n'y a pas de graines
+\end{enumerate}
+On r\'ecup\`ere le premier $h$ donnant le nombre choisi de graines. Comme les $h$ sont parcourus par ordre d\'ecroissant, c'est donc le plus grand $h$ donnant ce nombre de graines qui est retenu.
+\color{black}
+\begin{verbatim}
+   246	        if (s.count(1) or s.count(2))!=0:
+   247	            if score>=Thau:
+   248	                h, sigma=parameters[c][np.where(np.array(s)==2)[0][0]]
+   249	                nb_final=2
+   250	            elif s.count(1)!=0:
+   251	                h, sigma=parameters[c][np.where(np.array(s)==1)[0][0]]
+   252	                nb_final=1
+   253	            else:
+   254	                h, sigma=parameters[c][np.where(np.array(s)==2)[0][0]]
+   255	                nb_final=2
+   256	            right_parameters[c]=[h, sigma, nb_final]
+   257	        elif s.count(3)!=0:
+   258	            h, sigma=parameters[c][s.index(3)]
+   259	            right_parameters[c]=[h, sigma, 3]
+   260	        else:
+   261	            cells_with_no_seed.append(c)
+   262	            right_parameters[c]=[0, 0, 0]
+   263	    return right_parameters, cells_with_no_seed
+   264	
+\end{verbatim}
+\color{\mycolor}
+Retourne un tableau avec, pour chaque cellule $c$, les valeurs de $h$, $\sigma$, et le nombre de graines, ainsi que la liste des cellules sans graines (c'est redondant, puisque ce sont les cellules avec 0 graines).
+\color{black}
+
+
+
+
+
+\subsection{\texttt{get\_seeds\_from\_optimized\_parameters()}}
+\label{sec:get:seeds:from:optimized:parameters}
+Appel\'e par \texttt{segmentation\_propagation\_from\_seeds()},
+section \ref{sec:segmentation:propagation:from:seeds}, page \pageref{sec:segmentation:propagation:from:seeds}
+\begin{verbatim}
+   266	def get_seeds_from_optimized_parameters(t, seg, cells, cells_with_no_seed, right_parameters,delta_t, bounding_boxes, im_ref, seeds, parameters, h_min_max, path_h_min, sigma,Volum_Min_No_Seed=100, verbose=False):
+\end{verbatim} 
+\color{\mycolor}
+\begin{itemize}
+\itemsep -1ex
+\item \verb|t| : temps pour l'image de r\'ef\'erence, on va segmenter l'image suivante, ie $t+1$
+\item \verb|seg| :  image de segmentation $\tilde{S}_{t+1}$, \texttt{SpatialImage}. S'appelait \verb|segmentation|  lors de l'appel
+\item \verb|cells| : liste des cellules
+\item \verb|cells_with_no_seed| : liste des cellules sans graines
+\item \verb|right_parameters| : ($H$, $\sigma$, nombre de graines) pour chaque cellule
+\item \verb|delta_t| :
+\item \verb|bounding_boxes| : boites englobantes pour les cellules
+\item \verb|im_ref| : $I_{t+1}$ sur un octet, \texttt{SpatialImage}. S'appelait \verb|im_fused_8|  lors de l'appel
+\item \verb|seeds| : $S^e_{t+1 \leftarrow t} = S^e_t \circ \mathcal{T}_{t \leftarrow t+1}$, soit les graines projet\'ees (cellules de $S^{\star}_t$ \'erod\'ees puis transform\'ees dans $I_{t+1}$), \texttt{SpatialImage}
+\item \verb|parameters| : liste pour chaque cellule,  des param\`etres de calcul des $h$-minima ($h$ et $\sigma$)
+\end{itemize}
+\color{black}
+\begin{verbatim}
+   267	    """
+   268	    Return the seed image from the locally parametrized h-minima operator
+   269	    t : time
+   270	    seg : propagated segmentation (seg at t deformed on t+dt)
+   271	    cells : list of cells in seg
+   272	    cells_with_no_seed : list of cells with no correct parameters
+   273	    right_parameters : dict of the correct parameters for every cells
+   274	    delta_t : dt
+   275	    bounding_boxes : bounding boxes of the cells in seg (to fasten the computation)
+   276	    im_ref : Intensity image at time t+dt (on which to permorm the watershed)
+   277	    seeds : Propagated seeds from segmentation at time t (when no correct parameters were found)
+   278	    parameters : ?
+   279	    h_min_max : starting maximum value of h_min
+   280	    sigma : sigma of the gaussian smoothing (in voxels)
+   281	    path_h_min : format of h minima file names
+   282	    """
+   283	    seeds_from_opt_h=np.zeros_like(seg, dtype=np.uint16)
+   284	    label_max=2
+   285	    corres={}
+   286	    divided_cells=[]
+   287	    h_min_information={}
+   288	    sigma_information={}
+   289	    sigma_done=[]
+   290	    h_min_done=[]
+   291	    seeds_images={}
+   292	    for c in cells:
+   293	    	print 'get_seeds_from_optimized_parameters on '+str(c)
+   294	        if c in cells_with_no_seed:
+   295	            continue
+   296	        if not seeds_images.has_key((right_parameters[c][0], right_parameters[c][1])):
+   297	            path_seeds_not_prop=path_h_min.replace('$HMIN',str(right_parameters[c][0])).replace('$SIGMA',str(right_parameters[c][1]));
+   298	            seeds_images[(right_parameters[c][0], right_parameters[c][1])]=imread(path_seeds_not_prop)
+   299	        bb=slices_dilation(bounding_boxes[c], maximum=seg.shape, iterations=2)
+   300	        seg_c=np.ones_like(seg[bb])
+   301	        seg_c[seg[bb]==c]=c
+   302	        seeds_ex=seeds_images[(right_parameters[c][0], right_parameters[c][1])][bb]
+\end{verbatim} 
+\color{\mycolor}
+Pour chaque cellule (qui a des graines), on dilate sa boite englobante, et on cr\'ee une sous-image, \verb|seg_c|, o\`u la cellule est \`a $c$ et le reste \`a 1. On r\'ecup\`ere aussi la sous-image correspondante, \verb|seeds_ex|, des $h$-minima correspondant aux param\`etres de la cellule. C'est tout-\`a-fait similaire \`a ce qui \'etait fait dans \texttt{get\_seeds()} (section \ref {sec:get:seeds}, page \pageref{sec:get:seeds}).
+\color{black}
+\begin{verbatim}
+   303	        nb, seeds_c=extract_seeds(seg_c, c, seeds_ex)
+\end{verbatim} 
+\color{\mycolor}
+Appel \`a \texttt{extract\_seeds()} (section \ref{sec:extract:seeds}, page \pageref{sec:extract:seeds})
+\begin{itemize}
+\itemsep -1ex
+\item \verb|seg_c| : sous-image o\`u la cellule est \`a $c$ et le reste \`a 1
+\item \verb|c| : label de la cellule
+\item \verb|seeds_ex| : sous-image des $h$-minima
+\end{itemize}
+\texttt{extract\_seeds()} (re)calcule les graines strictement incluses dans la cellule $c$ et renvoie une sous-image des graines num\'erot\'ees \`a partir de 1
+\begin{itemize}
+\itemsep -1ex
+\item \verb|nb| : le nombre de graines
+\item \verb|seeds_c| : sous-image des graines num\'erot\'ees \`a partir de 1
+\end{itemize}
+Toutefois, le nombre de graines ne peut \^etre que dans $[1,2,3]$ et il ne peut y avoir au plus que 2 graines num\'erot\'ees. C'est pour \c{c}a que le cas \verb|nb==3| est identique au cas \verb|nb==2| ci-dessous.
+\color{black}
+\begin{verbatim}   
+   304	        if nb==1:
+   305	            corres[c]=[label_max]
+   306	            h_min_information[(t+delta_t)*10**4+label_max]=right_parameters[c][0]
+   307	            sigma_information[(t+delta_t)*10**4+label_max]=right_parameters[c][1]
+   308	            seeds_from_opt_h[bb]+=seeds_c*label_max
+   309	            label_max+=1
+   310	        elif nb==2:
+   311	            corres[c]=[label_max, label_max+1]
+   312	            divided_cells.append((label_max, label_max+1))
+   313	            seeds_from_opt_h[bb][seeds_c==1]=label_max
+   314	            h_min_information[(t+delta_t)*10**4+label_max]=right_parameters[c][0]
+   315	            sigma_information[(t+delta_t)*10**4+label_max]=right_parameters[c][1]
+   316	            label_max+=1
+   317	            seeds_from_opt_h[bb][seeds_c==2]=label_max
+   318	            h_min_information[(t+delta_t)*10**4+label_max]=right_parameters[c][0]
+   319	            sigma_information[(t+delta_t)*10**4+label_max]=right_parameters[c][1]
+   320	            label_max+=1
+   321	        elif nb==3:
+   322	            corres[c]=[label_max, label_max+1]
+   323	            divided_cells.append((label_max, label_max+1))
+   324	            seeds_from_opt_h[bb][seeds_c==1]=label_max
+   325	            h_min_information[(t+delta_t)*10**4+label_max]=right_parameters[c][0]
+   326	            sigma_information[(t+delta_t)*10**4+label_max]=right_parameters[c][1]
+   327	            label_max+=1
+   328	            seeds_from_opt_h[bb][seeds_c==2]=label_max
+   329	            h_min_information[(t+delta_t)*10**4+label_max]=right_parameters[c][0]
+   330	            sigma_information[(t+delta_t)*10**4+label_max]=right_parameters[c][1]
+   331	            label_max+=1
+\end{verbatim} 
+\color{\mycolor}
+A la fin de cette etape, \verb|seeds_from_opt_h| contient les graines numerotees (la num\'erotation commence \`a 2, voir l'initialisation de \verb|label_max|) des cellules qui ont des graines (donc pas celles de la liste \verb|cells_with_no_seeds|).  
+\color{black}
+\begin{verbatim}   
+   332	
+   333		print 'Create Background seed'
+   334	    c=1
+   335	    seg_c=np.ones_like(seg)
+   336	    seg_c[seg!=c]=0
+   337	    sigma_out=sigma
+   338	    key_min = (h_min_max, sigma_out)
+   339	    for k in seeds_images.iterkeys():
+   340	    	if k[0]<key_min[0]:
+   341	    		key_min = k
+\end{verbatim} 
+\color{\mycolor}
+Pour la grain du fond, on r\'ecup\`ere dans \verb|seg_c| la "cellule" fond de $\tilde{S}_{t+1}$ (\verb|seg_c| a donc des 1 pour le fond et des 0 ailleurs), segmentation par ligne de partage des eaux de $I_{t+1}$ avec les graines $S^e_{t+1 \leftarrow t} = S^e_t \circ \mathcal{T}_{t \leftarrow t+1}$. On lui affecte des param\`etres fictifs $(h_{max}, \sigma)$.
+\color{black}
+\begin{verbatim}
+   342	
+   343	    print 'Cell propagation'
+   344	    seeds_not_prop=seeds_images[key_min]
+   345	    parameters=(seg_c, c,seeds_not_prop)
+   346	    seg_c_p, nb, labels, c=cell_propagation(parameters)
+\end{verbatim} 
+\color{\mycolor}
+On appelle \texttt{cell\_propagation()} (section \ref{sec:cell:propagation}, page \pageref{sec:cell:propagation}) avec les graines issues du calcul des $h_{max}$-minima. \texttt{cell\_propagation()} retourne \texttt{None}, le nombre de $h$-minima, la liste des labels des $h$-minima, le label de la cellule
+\color{black}
+\begin{verbatim}
+   347	    corres[1]=[]
+   348	    exterior_corres=[]
+   349	    for l in labels:
+   350	        seeds_from_opt_h=seeds_from_opt_h.astype(np.uint16)
+\end{verbatim} 
+\color{\mycolor}
+On caste \verb|seeds_from_opt_h| en \verb|uint16|, mais il avait \'et\'e construit dans ce type : 
+\verb|seeds_from_opt_h=np.zeros_like(seg, dtype=np.uint16)|
+\color{black}
+\begin{verbatim}
+   351	        exterior_corres.append(label_max)
+   352	        seeds_from_opt_h[seeds_not_prop==l]=label_max
+   353	        label_max+=1
+\end{verbatim} 
+\color{\mycolor}
+On a r\'ecup\'er\'e ici toutes les graines correspondant au fond dans l'image des $h_{max}$-minima. Autre choix, on aurait pu toutes les mettre \`a 1.
+\color{black}
+\begin{verbatim}
+   354	
+   355	    print 'Cells with not Seed'
+   356	    for c in cells_with_no_seed:
+   357	        if np.sum(seg==c)>Volum_Min_No_Seed:
+   358	            seeds_from_opt_h[seeds==c]=label_max
+   359	            h_min_information[(t+delta_t)*10**4+label_max]=right_parameters[c][0]
+   360	            corres[c]=[label_max]
+   361	            label_max+=1
+\end{verbatim} 
+\color{\mycolor}
+Pour les cellules "sans graines", on regarde si leur volume (dans $\tilde{S}_{t+1}$) est suffisamment grand (sup\'erieur \`a 100). Si oui, on r\'ecup\`ere alors la graine correspondante dans $S^e_{t+1 \leftarrow t} = S^e_t \circ \mathcal{T}_{t \leftarrow t+1}$ (cellules de $S^{\star}_t$ \'erod\'ees puis transform\'ees).
+\color{black}
+\begin{verbatim}
+   362	
+   363	    print 'Watershed '
+   364	    seg_from_opt_h=watershed(SpatialImage(seeds_from_opt_h, voxelsize=seeds_from_opt_h.voxelsize), im_ref, temporary_folder=os.path.dirname(path_h_min), verbose=verbose)
+\end{verbatim} 
+\color{\mycolor}
+Ligne de partage des eaux dans $I_{t+1}$
+\color{black}
+\begin{verbatim}
+   365	    for l in exterior_corres:
+   366	        seg_from_opt_h[seg_from_opt_h==l]=1
+   367	    corres[1]=[1]
+\end{verbatim} 
+\color{\mycolor}
+On met les cellules correspondant au fond \`a 1. Cela n'aurait pas \'et\'e n\'ecessaire si toutes les graines du fond avaient \'et\'e mises \`a 1.
+\color{black}
+\begin{verbatim}
+   368	
+   369	    return seeds_from_opt_h, seg_from_opt_h, corres, exterior_corres, h_min_information, sigma_information, divided_cells, label_max    
+\end{verbatim}
+\color{\mycolor}
+Retourne
+\begin{itemize}
+\itemsep -1ex
+\item \verb|seeds_from_opt_h| : une \texttt{SpatialImage} contenant les graines
+\item \verb|seg_from_opt_h| : une \texttt{SpatialImage} contenant la segmentation
+\item \verb|corres| : un tableau contenant les filiations
+\item \verb|exterior_corres| : une liste contenant la filiation pour le fond (inutile ?)
+\item \verb|h_min_information| : une liste contenant les valeurs de $h$ utilisées pour chaque cellule
+\item \verb|sigma_information| : une liste contenant les valeurs de $\sigma$ utilisées pour chaque cellule
+\item \verb|divided_cells| : une liste contenant les couples de cellules soeurs
+\item \verb|label_max| : le plus grand label utilisé (+1)
+\end{itemize}
+\color{black}
+
+
+
+
+
+\subsection{\texttt{perform\_ac()}}
+\label{sec:perform:ac}
+Appel\'e par \texttt{volume\_checking()}
+(section \ref{sec:volume:checking}, page \pageref{sec:volume:checking}).
+
+\begin{verbatim}
+   372	def perform_ac(parameters):
+   373	    """
+   374	    Return the shape resulting of morphosnake operation on image I using image S as an initialisation
+   375	    m : label of the cell to work on
+   376	    daughters : list of the daughters of cell m (to keep track when working in parallel)
+   377	    bb : bounding boxe of m
+   378	    I : intensity image to perform active contours on (SpatialImage)
+   379	    S : segmented image to perform active contours from (SpatialImage, must contain the label m)
+   380	    """
+   381	
+   382	
+\end{verbatim} 
+\color{\mycolor}
+\begin{itemize}
+\itemsep -1ex
+\item \verb|m| : label de la cellule m\`ere 
+\item \verb|daughters| : labels des cellules filles
+\item \verb|bb| : boite englobante de la cellule m\`ere transform\'ee et dilat\'ee (15 fois)
+\item \verb|I| : sous-image de l'image originale d\'efinie par la boite englobante (ce n'est pas n\'ecessairement une image sur 2 octets). S'appelait  \verb|im_ref_tmp|
+\item \verb|S| : sous-image de $S^{\star}_t$ transform\'ee dans $I_{t+1}$, soit $S^{\star}_t \circ \mathcal{T}_{t \leftarrow t+1}$. S'appelait  \verb|seg_ref_tmp|
+\item \verb|MorphosnakeIterations| : \verb|MorphosnakeIterations=10|
+\item \verb|NIterations| : \verb|NIterations=200|
+\item \verb|DeltaVoxels| : \verb|DeltaVoxels=10**3|
+\end{itemize}
+\color{black}
+\begin{verbatim}
+   383	    m, daughters, bb, I, S,MorphosnakeIterations,NIterations,DeltaVoxels=parameters
+   384	    import os
+   385	    from scipy import ndimage as nd
+   386	    import morphsnakes
+   387	    cell_num=m
+\end{verbatim} 
+\color{\mycolor}
+On \'erode le compl\'ementaire de la m\`ere ?
+\color{black}
+\begin{verbatim} 
+   388	    Sb=nd.binary_erosion(S!=cell_num, iterations=MorphosnakeIterations, border_value=1)#[:,:,sl]
+   389	    image_input='tmp_'+str(cell_num)+'.inr'
+   390	    gradient_output='tmp_out_'+str(cell_num)+'.inr'
+   391	    imsave(image_input, I)
+\end{verbatim} 
+\color{\mycolor}
+On calcule une norme de gradient (vient de \verb|cpp_wrapping.py|), puis on calcule 
+\begin{displaymath}
+g(I) = \frac{1}{\sqrt{1+ \alpha |\nabla G_{\sigma}* I|}}
+\end{displaymath}
+c'est l'eq. (24) de \cite{marquez-neil:pami:2014}. Toutefois, le design de cette fonction $g()$ est d'\^etre faible aux contours. Si on consid\`ere que l'image des membranes est une image de norme de gradient, il aurait suffi de l'inverser. 
+\color{black}
+\begin{verbatim} 
+   392	    gradient_norm(image_input,gradient_output)
+   393	    gI = imread(gradient_output)
+   394	    os.system('rm -f '+image_input+' '+gradient_output)
+   395	    gI=1./np.sqrt(1+100*gI)
+   396		
+   397		
+   398	    macwe = morphsnakes.MorphGAC(gI, smoothing=3, threshold=1, balloon=1)
+   399	    macwe.levelset = Sb
+   400	    bef=np.ones_like(Sb)
+   401	    from copy import deepcopy
+   402	    for i in xrange(NIterations):
+   403	        beff=deepcopy(bef)
+   404	        bef=deepcopy(macwe.levelset)
+   405	        macwe.step()
+   406	        if np.sum(bef!=macwe.levelset)<DeltaVoxels or np.sum(beff!=macwe.levelset)<DeltaVoxels:
+   407	            break
+   408	    out=macwe.levelset
+   409	    tmp=nd.binary_fill_holes(out)
+   410	    cell_out=(out.astype(np.bool) ^ tmp)
+   411	    return m, daughters, bb, cell_out
+  
+\end{verbatim}
+
+
+
+
+
+\subsection{\texttt{volume\_checking()}}
+\label{sec:volume:checking}
+
+\color{\mycolor}
+Appel\'e par \texttt{segmentation\_propagation\_from\_seeds()}
+(section \ref{sec:segmentation:propagation:from:seeds}, page \pageref{sec:segmentation:propagation:from:seeds})
+\color{black}
+
+\begin{verbatim}
+   414	def volume_checking(t,delta_t,seg, seeds_from_opt_h, seg_from_opt_h, corres, divided_cells, bounding_boxes, right_parameters, im_ref, im_ref16, seeds, nb_cells, 
+   415	    label_max, exterior_corres, parameters, h_min_information, sigma_information, segmentation_file_ref, segmentation_file_trsf, path_h_min, volumes_t_1, 
+   416	    nb_proc=26,Thau= 25,MinVolume=1000,VolumeRatioBigger=0.5,VolumeRatioSmaller=0.1,MorphosnakeIterations=10,NIterations=200 ,DeltaVoxels=10**3):
+\end{verbatim} 
+\color{\mycolor}
+\begin{itemize}
+\itemsep -1ex
+\item \verb|t| : temps pour l'image de r\'ef\'erence, on va segmenter l'image suivante, ie $t+1$
+\item \verb|delta_t| : 
+\item \verb|seg| : image de segmentation $\tilde{S}_{t+1}$, \texttt{SpatialImage}. S'appelait \verb|segmentation| lors de l'appel. C'est la segmentation de $I_{t+1}$ avec les graines projet\'ees $S^e_{t+1 \leftarrow t} = S^e_t \circ \mathcal{T}_{t \leftarrow t+1}$,
+\item \verb|seeds_from_opt_h| : une \texttt{SpatialImage} contenant les graines (obtenues avec les param\`etres optimaux pour chaque cellule)
+\item \verb|seg_from_opt_h| : une \texttt{SpatialImage} contenant la segmentation obtenue avec les graines de \verb|seeds_from_opt_h| 
+\item \verb|corres| : un tableau contenant les filiations de chaque cellule de la segmentation \`a $t$
+\item \verb|divided_cells| : une liste contenant les couples de cellules soeurs
+\item \verb|bounding_boxes| : boites englobantes pour les cellules
+\item \verb|right_parameters| : ($h$, $\sigma$, nombre de graines) optimaux pour chaque cellule
+\item \verb|im_ref| : $I_{t+1}$ sur un octet, \texttt{SpatialImage}. S'appelait \verb|im_fused_8| lors de l'appel
+\item \verb|im_ref16| : $I_{t+1}$ sur un ou deux octet, \texttt{SpatialImage}. Peut \^etre identique \`a \verb|im_ref|. S'appelait \verb|im_fused| lors de l'appel.
+\item \verb|seeds| : $S^e_{t+1 \leftarrow t} = S^e_t \circ \mathcal{T}_{t \leftarrow t+1}$, soit les graines projet\'ees (cellules de $S^{\star}_t$ \'erod\'ees puis transform\'ees dans $I_{t+1}$) \texttt{SpatialImage}
+\item \verb|nb_cells| : liste pour chaque cellule, du nombre de $h$-minima strictement inclus dans la cellule de  $\tilde{S}_{t+1}$. C'est le $\mathrm{Count}^{h}(c)$ de \cite[section 2.3.3.5, page 71]{guignard:tel-01278725}.
+\item \verb|label_max| :  le plus grand label utilisé pour les graines (+1)
+\item \verb|exterior_corres| : une liste contenant la filiation (les labels des graines) pour le fond (inutile ?)
+\item \verb|parameters| : liste pour chaque cellule,  de tous les param\`etres de calcul des $h$-minima ($h$ et $\sigma$)
+\item \verb|h_min_information| : une liste contenant les valeurs de $h$ utilisées pour chaque cellule
+\item \verb|sigma_information| : une liste contenant les valeurs de $\sigma$ utilisées pour chaque cellule
+\item \verb|segmentation_file_ref| : nom de l'image de segmentation \`a $t$, $S^{\star}_t$
+\item \verb|segmentation_file_trsf| : nom de l'image de segmentation $S^{\star}_t$ transform\'ee dans $I_{t+1}$, soit
+$S^{\star}_t \circ \mathcal{T}_{t \leftarrow t+1}$. S'appelait \verb|path_seg_trsf| lors de l'appel.
+\item \verb|path_h_min| : nom g\'en\'erique pour les images de $h$-minima
+\item \verb|volumes_t_1| : liste des volumes des cellules \`a $t$
+\item \ldots
+\end{itemize}
+\color{black}
+\begin{verbatim} 
+   417	    """
+   418	    Return corrected final segmentation based on conservation of volume in time
+   419	    seg : propagated segmentation (seg at t deformed on t+dt) (SpatialImage)
+   420	    seeds_from_opt_h : optimized seeds (SpatialImage)
+   421	    seg_from_opt_h : segmented image from seeds_from_opt_h (SpatialImage)
+   422	    corres : mapping of cells at time t to cells at t+dt in seg_from_opt_h
+   423	    divided_cells : list of cells that have divided between t and t+dt
+   424	    bounding_boxes : bounding boxes of the cells in seg (to fasten the computation)
+   425	    right_parameters : list of parameters used to create seeds_from_opt_h
+   426	    im_ref : image to segment at time t+dt 8 bits (SpatialImage)
+   427	    im_ref16 : image to segment at time t+dt in 16 bits (SpatialImage)
+   428	    seeds : Propagated seeds from segmentation at time t
+   429	    nb_cells : { cell: [#seeds, ] }: dict, key: cell, values: list of #seeds
+   430	    label_max : maximum label in seg_from_opt_h
+   431	    exterior_corres : list of cells that have been corrected for issue in exterior
+   432	    parameters : { cell: [[h_min, sigma], ]}: dict matching nb_cells, key: cell, values: list of parameters
+   433	    h_min_information : { cell: h_min}: dict associating to each cells the h_min that allowed its segmentation
+   434	    sigma_information : { cell: sigma}: dict associating to each cells the sigma that allowed its segmentation
+   435	    segmentation_file_ref : path to the segmentation at time t
+   436	    segmentation_file_trsf : path to the segmentation at time t resampled at t+1 
+   437	    vf_file : path to the vector field that register t into t+dt
+   438	    path_h_min : format of h-minima files
+   439	    volumes_t_1 : cell volumes at t (provient de la lecture du lin\'eage)
+   440	    """
+   441	
+   442	    # seg_origin : original segmentation (SpatialImage)
+   443	
+   444	    seg_origin=imread(segmentation_file_ref)
+   445	
+   446	    volumes_from_opt_h=compute_volumes(seg_from_opt_h)
+   447	    if volumes_t_1=={}:
+   448	        volumes=compute_volumes(seg_origin)
+   449	    else:
+   450	        volumes=volumes_t_1
+\end{verbatim} 
+\color{\mycolor}
+\begin{itemize}
+\itemsep -1ex
+\item \verb|volumes_from_opt_h| : volumes des cellules de la segmentation \verb|seg_from_opt_h| \`a $t+1$
+\item \verb|volumes| : volumes des cellules de la segmentation \verb|segmentation_file_ref| \`a $t$ 
+(a priori provient de la lecture du lin\'eage lors de l'appel : \verb|volumes_t_1|).
+\end{itemize}
+\color{black}
+\begin{verbatim} 
+   451	
+   452	    bigger=[]
+   453	    lower=[]
+   454	    to_look_at=[]
+   455	    too_little=[]
+   456	    for mother_c, sisters_c in corres.iteritems():
+   457	        if mother_c!=1:
+   458	            volume_ratio=1-(volumes[mother_c]/np.sum([volumes_from_opt_h.get(s, 1) for s in sisters_c]))
+   459	            if not (-VolumeRatioSmaller<volume_ratio<VolumeRatioSmaller):
+   460	                if (volume_ratio>0) and (volumes_from_opt_h.get(s, 1)!=1):
+   461	                    bigger.append((mother_c, sisters_c))
+   462	                elif volumes_from_opt_h.get(s, 1)!=1 :
+   463	                    lower.append((mother_c, sisters_c))
+   464	                if volume_ratio<-VolumeRatioBigger:
+   465	                    to_look_at.append(mother_c)
+   466	            else :
+   467	                for s in sisters_c:
+   468	                    if volumes_from_opt_h[s]<MinVolume:
+   469	                        too_little.append((mother_c, s))
+\end{verbatim} 
+\color{\mycolor}
+Calcule $volume_{ratio} = 1 - vol(mother) / \sum vol(daughter)$
+\begin{enumerate}
+\itemsep -1ex
+\item Si $vol(mother) / \sum vol(daughter) \geq 1 + VRS$ ou $1 - VRS > vol(mother) / \sum vol(daughter)$ (variation de volume de plus de 10\%)
+\begin{enumerate}
+\item Si $\sum vol(daughter) > vol(mother)$, on met le couple (m\`ere, liste des filles) dans \verb|bigger|
+\item sinon (si $\sum vol(daughter) \leq vol(mother)$), on met le couple (m\`ere, liste des filles) dans \verb|lower|
+\item Si $vol(mother) / \sum vol(daughter) \geq 1 + VRB$ (variation de volume de plus de 50\%), on ajoute la m\`ere dans \verb|to_look_at|
+\end{enumerate}
+\item sinon, si une cellule fille $s$ a un trop petit volume ($<1000$), alors on ajoute le couple (m\`ere, fille) dans \verb|too_little|
+\end{enumerate}
+Notes:
+\begin{itemize}
+\itemsep -1ex
+\item Les m\`eres dans  \verb|to_look_at| sont aussi dans \verb|lower|
+\item Le cas $vol(mother) / \sum vol(daughter) \leq 1 + VRB$ n'est pas consid\'er\'e
+\end{itemize}
+\color{black}
+\begin{verbatim} 
+   470	                
+   471	    to_fuse_3=[]
+   472	    change_happen=False
+\end{verbatim} 
+\color{\mycolor}
+\verb|to_look_at| contient la liste des cellules de $S^{\star}_t$ dont les filles ont une grande diminution de volume (plus de 50\%).
+\verb|nb_cells| contient le nombre de graines (de $h$-minima) pour les diff\'erentes valeurs de $h$. \verb|nb_cells| a \'et\'e calcul\'e par \texttt{get\_seeds()} (section \ref{sec:get:seeds}, page \pageref{sec:get:seeds}).
+\color{black}
+\begin{verbatim} 
+   473	    for c in to_look_at:
+   474	        s=nb_cells[c]
+   475	        nb_2=np.sum(np.array(s)==2)
+   476	        nb_3=np.sum(np.array(s)>=2)
+   477	        score=nb_2*nb_3
+   478	        if (s.count(1) or s.count(2))!=0:
+   479	            if score>=Thau:
+   480	                h, sigma=parameters[c][np.where(np.array(s)==2)[0][-1]]
+   481	                nb_final=2
+   482	            elif s.count(1)!=0:
+   483	                h, sigma=parameters[c][np.where(np.array(s)==1)[0][-1]]
+   484	                nb_final=1
+   485	            else:
+   486	                h, sigma=parameters[c][np.where(np.array(s)==2)[0][-1]]
+   487	                nb_final=2
+   488	            right_parameters[c]=[h, sigma, nb_final]
+\end{verbatim} 
+\color{\mycolor}
+On recalcule le score $s(c) = N_{2^{+}}(c) . N_{2}(c) > \tau$ (d\'ej\`a calcul\'e dans \texttt{get\_back\_parameters()} (section \ref{sec:get:back:parameters}, page \pageref{sec:get:back:parameters}).
+Les premi\`eres lignes (479 \`a 488) sont identiques aux lignes (247 \`a 256) de \texttt{get\_back\_parameters()}, except\'e que c'est le plus petit $h$ qui donne ce nombre de graines qui est retenu (plut\^ot que le plus grand -- l'indice [-1] au lieu de [0])
+\begin{enumerate}
+\itemsep -1ex
+\item Si le score donne une graine (\verb|nb_final| = 1) et il existe des $h$ qui donnent 2 graines,  on r\'ecup\`ere le premier $h$ qui donne $2$ graines   et on passe donc \`a 2 graines (mais il y a un test bizarre)
+
+\item Si le score donne une ou deux graine(s) (\verb|nb_final| = 1 \verb|or| \verb|nb_final| = 2) et il existe un $h$ qui donne plus de  2 graines, on r\'ecup\`ere les param\`etres li\'es au plus petit $h$ (\verb|parameters[c][-1]|), donc forc\'ement plus de 2 graines. 
+Notons que le cas o\`u \verb|nb_final| = 1 et qu'il y a des $h$ qui donnent 2 et plus graines est trait\'e 2 fois.
+
+\end{enumerate}
+\color{black}
+\begin{verbatim} 
+   489	            if nb_final==1 and s.count(2)!=0:
+   490	                h, sigma=parameters[c][s.index(2)]
+\end{verbatim} 
+\color{\mycolor}
+Premier cas : la s\'election optimale donne 1 graine, et il existe des $h$ qui donnent 2 graines, on r\'ecup\`ere le premier $h$ qui donne 2 graines, donc le plus grand d'entre eux.
+\color{black}
+\begin{verbatim} 
+   491	                path_seeds_not_prop=path_h_min.replace('$HMIN',str(h)).replace('$SIGMA',str(sigma));
+   492	                bb=slices_dilation(bounding_boxes[c], maximum=seg.shape, iterations=2)
+   493	                seg_c=np.ones_like(seg[bb])
+   494	                seg_c[seg[bb]==c]=c
+   495	                nb, seeds_c=extract_seeds(seg_c, c, path_seeds_not_prop, bb)
+\end{verbatim} 
+\color{\mycolor}
+Comme dans \texttt{get\_seeds\_from\_optimized\_parameters()} (section \ref{sec:get:seeds:from:optimized:parameters}, page \pageref{sec:get:seeds:from:optimized:parameters}), on cr\'ee une sous-image, \verb|seg_c|, o\`u la cellule est \`a $c$ et le reste \`a 1.
+\texttt{extract\_seeds()} renvoie le nombre de graines ainsi qu'une sous-image avec ces graines \'etiquet\'ees. 
+\color{black}
+\begin{verbatim} 
+   496	                if nb==2 and (seg_from_opt_h[bb][seeds_c!=0]==0).any(): #If we can found 2 seeds and one is not in new calculated cell
+\end{verbatim} 
+\color{\mycolor}
+On v\'erifie que l'on a bien 2 graines (ce doit \^etre le cas, ce sont les m\^emes op\'erations que pour \texttt{get\_seeds()}, et que \verb|seg_from_opt_h[bb][seeds_c!=0]==0).any()| : on prend la sous-image \verb|seg_from_opt_h[bb]|, on la masque par \verb|[seeds_c!=0]|, on a donc un tableau avec la liste des labels de  \verb|seg_from_opt_h[bb]| "en-dessous" des graines de \verb|seeds_c| et on regarde s'il y a des points \`a 0, ce qui est a priori n\'ecessairement faux, puisque les labels vont de 1 (le fond) \`a \verb|label_max|-1 ...
+
+Sans doute il aurait fallu tester avec \verb|seeds_from_opt_h|, auquel cas on aurait bien test\'e l'apparition d'une nouvelle graine (par rapport \`a une graine (avec un $h$ grand) qui se divise en 2 graines (avec un $h$ petit).
+
+Si oui, on efface dans les graines  \verb|seeeds_from_opt_h| la graine pr\'ec\'edente (\verb|corres[c][0]|) et on y ajoute les 2 nouvelles graines. On met \`a jour l'information des param\`etres dans \verb|h_min_information| et \verb|sigma_information|. Notons qu'il aurait fallu y enlever les informations li\'ees \`a \verb|corres[c][0]|.
+
+ex: \verb|del h_min_information[(t+delta_t)*10**4+corres[c][0]]|
+
+\color{black}
+\begin{verbatim} 
+   497	                    change_happen=True
+   498	                    seeds_from_opt_h[seeds_from_opt_h==corres[c][0]]=0
+   499	                    corres[c]=[label_max, label_max+1]
+   500	                    divided_cells.append((label_max, label_max+1))
+   501	                    seeds_from_opt_h[bb][seeds_c==1]=label_max
+   502	                    h_min_information[(t+delta_t)*10**4+label_max]=h
+   503	                    sigma_information[(t+delta_t)*10**4+label_max]=sigma
+   504	                    label_max+=1
+   505	                    seeds_from_opt_h[bb][seeds_c==2]=label_max
+   506	                    h_min_information[(t+delta_t)*10**4+label_max]=h
+   507	                    sigma_information[(t+delta_t)*10**4+label_max]=sigma
+   508	                    label_max+=1
+   509	            if (nb_final==1 or nb_final==2) and (np.array(s)>2).any():
+   510	                h, sigma=parameters[c][-1]
+\end{verbatim} 
+\color{\mycolor}
+Second cas : la s\'election optimale donne 1 graine ou 2 graines, et il existe des $h$ qui donnent plus de 2 graines, on r\'ecup\`ere le dernier $h$ (le plus petit test\'e, donc $h_{min}$) qui donne forc\'ement plus de graines. 
+
+Les cas o\`u l'ensemble des $h$ donne 1, 2 et plus graines est v\'erifi\'e par les 2 conditions, et est donc trait\'e 2 fois ?!
+\color{black}
+\begin{verbatim} 
+   511	                path_seeds_not_prop=path_h_min.replace('$HMIN',str(h)).replace('$SIGMA',str(sigma));
+   512	                seeds_image=imread(path_seeds_not_prop)
+   513	                bb=slices_dilation(bounding_boxes[c], maximum=seg.shape, iterations=2)
+   514	                seg_c=np.zeros_like(seg_from_opt_h[bb])
+   515	                for daughter in corres[c]:
+   516	                    seg_c[seg_from_opt_h[bb]==daughter]=1
+\end{verbatim} 
+\color{\mycolor}
+On cr\'ee une sous-image \verb|seg_c| de 0 pour la cellule $c$ dans laquelle on met \`a 1 les cellules filles de $c$ (rappel, il y a une diminution de volume de plus de 50\% entre la m\`ere et les filles) 
+\color{black}
+\begin{verbatim} 
+   517	                seeds_c=np.zeros_like(seg_from_opt_h[bb])
+   518	                seeds_c[(seg_c==1) & (seeds_image[bb]!=0)]=1
+   519	                seeds_c[(seg[bb]==c) & (seg_c!=1) & (seeds_image[bb]!=0)]=2
+\end{verbatim} 
+\color{\mycolor}
+On cr\'ee une sous-image \verb|seeds_c| de 0 pour la cellule $c$ dans laquelle on met \`a 
+\begin{itemize}
+\itemsep -1ex
+\item 1 : l'intersection des cellules filles de $c$ (marqu\'ees dans \verb|seg_c|) et des $h_{min}$-minima
+\item 2  : l'intersection de la cellule $c$ de $\tilde{S}_{t+1}$ et des $h_{min}$-minima (qui ne sont pas dans les cellules filles). Ces points sont donc des graines en-dehors des cellules filles.
+\end{itemize}
+\color{black}
+\begin{verbatim} 
+   520	                if 2 in seeds_c:
+\end{verbatim} 
+\color{\mycolor}
+Si il existe des graines en dehors des cellules filles (donc des graines permettant de "r\'ecup\'erer" plus de mati\`ere),
+on efface dans les graines  \verb|seeeds_from_opt_h| les graines des filles pr\'ec\'edentes (\verb|corres[c]|) et on y ajoute les 2 ensembles de nouvelles graines. On met \`a jour l'information des param\`etres dans \verb|h_min_information| et \verb|sigma_information|. Notons qu'il aurait fallu y enlever les informations li\'ees \`a \verb|corres[c]|.
+
+ex: \verb|del h_min_information[(t+delta_t)*10**4+corres[c][0]]|
+
+Par ailleurs, on a forc\'ement plus de 3 graines : les graines \`a l'int\'erieur des cellules filles auront un label, et celles \`a l'ext\'erieur un autre. La division cellulaire est r\'ealis\'ee ainsi (alors qu'il pouvait d\'ej\`a y avoir une division cellulaire (cas \verb|nb_final| == 2) !)
+
+\color{black}
+\begin{verbatim} 
+   521	                    change_happen=True
+   522	                    for daughter in corres[c]:
+   523	                        seeds_from_opt_h[seeds_from_opt_h==daughter]=0
+   524	                    corres[c]=[label_max, label_max+1]
+   525	                    divided_cells.append((label_max, label_max+1))
+   526	                    seeds_from_opt_h[bb][seeds_c==1]=label_max
+   527	                    h_min_information[(t+delta_t)*10**4+label_max]=h
+   528	                    sigma_information[(t+delta_t)*10**4+label_max]=sigma
+   529	                    label_max+=1
+   530	                    seeds_from_opt_h[bb][seeds_c==2]=label_max
+   531	                    h_min_information[(t+delta_t)*10**4+label_max]=h
+   532	                    sigma_information[(t+delta_t)*10**4+label_max]=sigma
+   533	                    label_max+=1
+   534	            elif nb_final==1:
+\end{verbatim} 
+\color{\mycolor}
+On est donc dans le cas o\`u \verb|(np.array(s)>2).any()| est faux, donc il n'y a que une ou deux graines. S'il y a deux graines, cela a d\'ej\`a \'et\'e trait\'e dans le premier test (ligne 489). On efface alors la graine de \verb|seeds_from_opt_h| et on la remplace par la graine projet\'ee de \verb|seeds| ($S^e_{t+1 \leftarrow t} = S^e_t \circ \mathcal{T}_{t \leftarrow t+1}$)
+\color{black}
+\begin{verbatim} 
+   535	                change_happen=True
+   536	                seeds_from_opt_h[seeds_from_opt_h==corres[c][0]]=0
+   537	                seeds_from_opt_h[seeds==c]=corres[c][0]
+   538	                label_max+=1
+   539	        elif s.count(3)!=0:
+\end{verbatim} 
+\color{\mycolor}
+cas o\`u il y a 0 ou trois graines (ou plus) dans tous les $h$-minima (s'il y a 0 ou 4 graines ou plus, cela échappe au test).
+\color{black}
+\begin{verbatim} 
+   540	            h, sigma=parameters[c][s.index(3)]
+\end{verbatim} 
+\color{\mycolor}
+Premier cas : on r\'ecup\`ere le premier $3$ qui donne 2 graines, donc le plus grand d'entre eux. Si les premiers $h$ ne donnent pas $0$ graines, c'est donc $h_{max}$.
+\color{black}
+\begin{verbatim} 
+   541	            path_seeds_not_prop=path_h_min.replace('$HMIN',str(h)).replace('$SIGMA',str(sigma));
+   542	            bb=slices_dilation(bounding_boxes[c], maximum=seg.shape, iterations=2)
+   543	            seg_c=np.ones_like(seg[bb])
+   544	            seg_c[seg[bb]==c]=c
+\begin{verbatim} 
+   540	            h, sigma=parameters[c][s.index(3)]
+\end{verbatim} 
+\color{\mycolor}
+Appel \`a \texttt{extract\_seeds()} (section \ref{sec:extract:seeds}, page \pageref{sec:extract:seeds}), avec \verb| accept_3_seeds=True|. On va donc num\'eroter les 3 graines.
+\color{black}
+\begin{verbatim}
+   545	            nb, seeds_c=extract_seeds(seg_c, c, path_seeds_not_prop, bb, accept_3_seeds=True)
+   546	            change_happen=True
+   547	            #addition to correct 0-boolean error when len(corres[c])>1
+   548	            for ci in range(len(corres[c])):
+   549	                seeds_from_opt_h[seeds_from_opt_h==corres[c][ci]]=0
+   550	            #seeds_from_opt_h[seeds_from_opt_h==corres[c]]=0
+   551	            divided_cells.append((label_max, label_max+1))
+   552	            seeds_from_opt_h[bb][seeds_c==1]=label_max
+   553	            h_min_information[(t+delta_t)*10**4+label_max]=h
+   554	            sigma_information[(t+delta_t)*10**4+label_max]=sigma
+   555	            label_max+=1
+   556	            seeds_from_opt_h[bb][seeds_c==2]=label_max
+   557	            h_min_information[(t+delta_t)*10**4+label_max]=h
+   558	            sigma_information[(t+delta_t)*10**4+label_max]=sigma
+   559	            label_max+=1
+   560	            seeds_from_opt_h[bb][seeds_c==3]=label_max
+   561	            h_min_information[(t+delta_t)*10**4+label_max]=h
+   562	            sigma_information[(t+delta_t)*10**4+label_max]=sigma
+   563	            label_max+=1
+   564	            to_fuse_3.append([c, (label_max-1, label_max-2, label_max-3)])
+   565	
+\end{verbatim} 
+\color{\mycolor}
+\verb|to_fuse_3| contient donc les couples (m\`ere, triplets de labels des filles) lorsqu'il y a 3 soeurs.
+\color{black}
+\begin{verbatim}
+   566	
+   567	
+\end{verbatim} 
+\color{\mycolor}
+On traite les cas o\`u une fille a un trop petit volume. On enl\`eve cette fille des graines de \verb|seeds_from_opt_h|. Si c'\'etait la seule fille, on enl\`eve le m\`ere de la table des correspondances.
+\color{black}
+\begin{verbatim}
+   568	    if too_little!=[]:
+   569	        for c in too_little:
+   570	            #for d in corres[c]:
+   571	            seeds_from_opt_h[seeds_from_opt_h==c[1]]=0
+   572	            tmp=corres[c[0]]
+   573	            tmp.remove(c[1])
+   574	            if tmp==[]:
+   575	                corres.pop(c[0])
+   576	            else:
+   577	                corres[c[0]]=tmp
+   578	            change_happen=True
+   579	
+\end{verbatim} 
+\color{\mycolor}
+S'il y a eu des changements dans les graines, on recalcule une image de segmentation. Sinon on pourrait arreter l\`a.
+
+\verb|bigger| n'a pas \'et\'e utilis\'e, \verb|lower| non plus, et va \^etre recalcul\'e.
+\color{black}
+\begin{verbatim}
+   580	    if change_happen:
+   581	        seg_from_opt_h=watershed(SpatialImage(seeds_from_opt_h,voxelsize=seeds_from_opt_h.voxelsize), im_ref, temporary_folder=os.path.dirname(path_h_min))
+   582	        for l in exterior_corres:
+   583	            seg_from_opt_h[seg_from_opt_h==l]=1  
+   584	            
+   585	        volumes_from_opt_h=compute_volumes(seg_from_opt_h)
+   586	
+\end{verbatim} 
+\color{\mycolor}
+On recalcule \verb|lower| (on rappelle que les cellules pr\'esentes dans \verb|to_look_at| \'etaient aussi dans \verb|lower|, il y a donc eu des changements dans la liste (s'il y a eu des changements dans les graines).
+
+A priori, cela est inutile s'il n'y a pas eu de changements.
+
+Note : il aurait fallu utiliser \verb|VolumeRatioSmaller| et non \verb|0.1|
+\color{black}
+\begin{verbatim}
+   587	    lower=[]
+   588	    for mother_c, sisters_c in corres.iteritems():
+   589	        if mother_c!=1:
+   590	            volume_ratio=1-(volumes[mother_c]/np.sum([volumes_from_opt_h.get(s, 1) for s in sisters_c]))
+   591	            if not (-.1<volume_ratio<.1):
+   592	                if (volume_ratio<0) and volumes_from_opt_h.get(s, 1)!=1 :
+   593	                    lower.append((mother_c, sisters_c))
+   594	    
+\end{verbatim} 
+\color{\mycolor}
+On regarde donc s'il y a des diminutions de volumes de plus de 10\%.
+\color{black}
+\begin{verbatim}
+   595	    exterior_correction=[]
+   596	    if lower!=[]:
+   597	        from copy import deepcopy
+   598	        #tmp=apply_trsf(segmentation_file_ref, vf_file, nearest=True, lazy=False)
+   599	        tmp=imread(segmentation_file_trsf)
+\end{verbatim} 
+\color{\mycolor}
+\verb|segmentation_file_trsf| : $S^{\star}_t$ transform\'ee dans $I_{t+1}$, soit $S^{\star}_t \circ \mathcal{T}_{t \leftarrow t+1}$.   
+\color{black}
+\begin{verbatim}
+   600	        old_bb=nd.find_objects(tmp)
+   601	        for mother_c, sisters_c in lower:
+\end{verbatim} 
+\color{\mycolor}
+\begin{itemize}
+\itemsep -1ex
+\item \verb|cell_before| : sous-image bool\'eenne \'ecrivant la cellule $c$ dans $S^{\star}_t$ 
+\item \verb|cell_after| : sous-image bool\'eenne \'ecrivant les cellules filles de  $c$ dans la nouvelle segmentation \verb|seg_from_opt_h|
+\item \verb|lost| : masque de la sous-image de \verb|seg_from_opt_h| masqu\'ee par le  XOR de  \verb|cell_before| et \verb|cell_after|, c'est donc \`a la fois ce qui a \'et\'e perdu et ce qui a \'et\'e gagn\'e [Rq: sur ma machine, le XOR se comporte comme un OR ...]
+\end{itemize}
+\color{black}
+\begin{verbatim}
+   602	            cell_before=tmp[old_bb[mother_c-1]]==mother_c
+   603	            cell_after=np.zeros_like(cell_before)
+   604	            for c in sisters_c:
+   605	                cell_after+=seg_from_opt_h[old_bb[mother_c-1]]==c
+   606	            lost=seg_from_opt_h[old_bb[mother_c-1]][cell_after^cell_before]
+   607	            max_share=0
+   608	            share_lab=0
+   609	            size={}
+\end{verbatim} 
+\color{\mycolor}
+\verb|lost|  contient  les labels de la diff\'erence. On cherche donc \`a v\'erifier si le plus grand label est le fond, ce qui suppose que c'est le fond qui a gagn\'e sur la cellule.
+\color{black}
+\begin{verbatim}
+   610	            for v in np.unique(lost):
+   611	                size[v]=np.sum(lost==v)
+   612	                if np.sum(lost==v)>max_share:
+   613	                    max_share=np.sum(lost==v)
+   614	                    share_lab=v
+\end{verbatim} 
+\color{\mycolor}
+On v\'erifie que $1$ (le fond) est bien le label le plus repr\'esent\'e dans la partie perdue. On v\'erifie aussi que le fond \'etait pr\'esent dans la boite englobante de la cellule mere deform\'ee (il aurait fallu v\'erifier que le fond \'etait adjacent \`a la cellule m\`ere). Si oui, on va lancer des corrections.
+\color{black}
+\begin{verbatim}
+   615	            if share_lab==1 and 1 in tmp[old_bb[mother_c-1]]:
+   616	                exterior_correction.append((mother_c, sisters_c))
+   617	        from multiprocessing import Pool
+   618	        pool=Pool(processes=nb_proc)
+   619	        mapping=[]
+   620	        for m, daughters in exterior_correction:
+   621	            bb=slices_dilation(old_bb[m-1], maximum=im_ref.shape, iterations=15)
+   622	            im_ref_tmp=deepcopy(im_ref16[bb])
+   623	            seg_ref_tmp=deepcopy(tmp[bb])
+   624	            mapping.append((m, daughters, bb, im_ref_tmp, seg_ref_tmp,MorphosnakeIterations,NIterations,DeltaVoxels))
+\end{verbatim} 
+\color{\mycolor}
+Appel \`a \texttt{perform\_ac()}, cf section \ref{sec:perform:ac}, page \pageref{sec:perform:ac}.
+\begin{itemize}
+\itemsep -1ex
+\item \verb|m| : label de la cellule m\`ere 
+\item \verb|daughters| : labels des cellules filles
+\item \verb|bb| : boite englobante de la cellule m\`ere transform\'ee et dilat\'ee (15 fois)
+\item \verb|im_ref_tmp| : sous-image de l'image originale d\'efinie par la boite englobante (ce n'est pas n\'ecessairement une image sur 2 octets)
+\item \verb|seg_ref_tmp| : sous-image de $S^{\star}_t$ transform\'ee dans $I_{t+1}$, soit $S^{\star}_t \circ \mathcal{T}_{t \leftarrow t+1}$
+\item \verb|MorphosnakeIterations| : \verb|MorphosnakeIterations=10|
+\item \verb|NIterations| : \verb|NIterations=200|
+\item \verb|DeltaVoxels| : \verb|DeltaVoxels=10**3|
+\end{itemize}
+On r\'ecup\`ere ensuite le r\'esultat du morphosnake. S'il y a plusieurs cellules filles, on n'en garde qu'une (la division n'est plus consid\'er\'ee). Note : si le morphosnake est appliqu\'e à deux cellules adjacentes, les parties communes dans le fond atteintes par les 2 morphosnakes seront attribu\'ees \`a la premi\`ere qui sera trait\'ee.
+
+Le cas de 3 cellules filles n'est pas consid\'er\'e. 
+\color{black}
+\begin{verbatim}
+   625	        outputs=pool.map(perform_ac, mapping)
+   626	        pool.close()
+   627	        pool.terminate()
+   628	        for m, daughters, bb, cell_out in outputs:
+   629	            seg_from_opt_h[bb][seg_from_opt_h[bb]==1 & cell_out]=daughters[0]
+   630	            if len(daughters)==2:
+   631	                seg_from_opt_h[bb][seg_from_opt_h[bb]==daughters[1]]=daughters[0]
+   632	                if tuple(daughters) in divided_cells:
+   633	                    divided_cells.remove(tuple(daughters))
+   634	            corres[m]=[daughters[0]]
+\end{verbatim} 
+\color{\mycolor}
+Traitement de \verb|to_fuse_3| : couples (m\`ere, triplets de labels des filles) lorsqu'il y a 3 soeurs. On \'elimine le plus petit label et on l'attribue au label avec lequel il a la plus grande fronti\`ere.
+\color{black}
+\begin{verbatim}
+   635	    for c, tf in to_fuse_3:
+   636	        bb=slices_dilation(bounding_boxes[c], maximum=seg.shape, iterations=2)
+   637	        seg_c=np.ones_like(seg_from_opt_h[bb])
+   638	        seg_c[seg_from_opt_h[bb]==tf[0]]=tf[0]
+   639	        seg_c[seg_from_opt_h[bb]==tf[1]]=tf[1]
+   640	        seg_c[seg_from_opt_h[bb]==tf[2]]=tf[2]
+   641	        v1=np.sum(seg_c==tf[0])
+   642	        v2=np.sum(seg_c==tf[1])
+   643	        v3=np.sum(seg_c==tf[2])
+   644	        vol_cells_to_f=[v1, v2, v3]
+   645	        cell_to_f=np.argmin(vol_cells_to_f)
+   646	        tmp=nd.binary_dilation(seg_c==tf[cell_to_f])
+   647	        p1=tf[np.argsort(vol_cells_to_f)[1]]
+   648	        p2=tf[np.argsort(vol_cells_to_f)[2]]
+   649	        im_tmp=np.zeros_like(seg_c)
+   650	        im_tmp[seg_c==p1]=p1
+   651	        im_tmp[seg_c==p2]=p2
+   652	        im_tmp[tmp==False]=0
+   653	        p1_share=np.sum(im_tmp==p1)
+   654	        p2_share=np.sum(im_tmp==p2)
+   655	        if p1_share>p2_share:
+   656	            seg_from_opt_h[seg_from_opt_h==tf[cell_to_f]]=p1
+   657	        else:
+   658	            seg_from_opt_h[seg_from_opt_h==tf[cell_to_f]]=p2
+   659	        corres[c]=[p1, p2]
+   660	        divided_cells.append((p1, p2))
+   661	
+   662	    return seg_from_opt_h, bigger, lower, to_look_at, too_little, corres, exterior_correction
+\end{verbatim}
+\color{\mycolor}
+\begin{itemize}
+\itemsep -1ex
+\item \verb|seg_from_opt_h| : image de segmentation
+\item \verb|bigger| : liste des couples (m\`ere, filles) o\`u les filles ont un volume plus grand (de plus de 10\%) de celui de la m\`ere
+\item \verb|lower| : liste des couples (m\`ere, filles) o\`u les filles ont un volume plus petit (de plus de 10\%) de celui de la m\`ere
+\item \verb|to_look_at| : liste des couples initiaux (m\`ere, filles) o\`u les filles avaient un volume plus petit (de plus de 50\%) de celui de la m\`ere. A priori, les filles ont \'et\'e recalcul\'ees, donc cette liste n'est plus \`a jour.
+\item \verb|too_little| : liste des couples initiaux (m\`ere, fille) o\`u la fille avait un petit volume (inf\'erieur \`a 1000 voxels). Ces filles ont a priori disparu.
+\item \verb|corres| : table des correspondances (m\`ere, filles), il peut y rester des incoh\'erences.
+\item \verb|exterior_correction| : liste des couples (m\`ere, filles) o\`u les filles ont un volume plus petit (de plus de 10\%) de celui de la m\`ere, et proches du fond, sur lesquels on lancera le morphosnake.
+\end{itemize}
+\color{black}
+
+
+
+
+\subsection{\texttt{outer\_correction()}}
+\label{sec:outer:correction}
+
+\color{\mycolor}
+Appel\'e par \texttt{segmentation\_propagation\_seeds\_init\_and\_deform()} (section \ref{sec:segmentation:propagation:from:seeds}, page \pageref{sec:segmentation:propagation:from:seeds}).
+\color{black}
+
+\begin{verbatim}
+   665	def outer_correction(seg_from_opt_h, exterior_correction,segmentation_file_ref,RadiusOpening=20):
+   666	    """
+   667	    Return an eroded segmentation correcting for potential errors in the morphsnake
+   668	    seg_from_opt_h : segmentated image (SpatialImage)
+   669	    exterior_correction : list of cells that have been corrected using morphsnake algorithm
+\end{verbatim}
+\color{\mycolor}
+\begin{itemize}
+\itemsep -1ex
+\item \verb|seg_from_opt_h| : image de segmentation
+\item \verb|exterior_correction| : liste des couples (m\`ere, filles) o\`u les filles ont un volume plus petit (de plus de 10\%) de celui de la m\`ere, et proches du fond, sur lesquels on a lanc\'e le morphosnake.
+\item \verb|segmentation_file_ref| : nom de l'image de segmentation \`a $t$, $S^{\star}_t$
+\item \verb|RadiusOpening| : \verb|RadiusOpening|= 20
+\end{itemize}
+\color{black}
+\begin{verbatim}
+   670	    """
+   671	    if exterior_correction!=[]:
+   672	    	image_input=segmentation_file_ref.replace('.inr','.seg_from_opt_h.inr')
+   673	        imsave(image_input, SpatialImage(seg_from_opt_h!=1, voxelsize=seg_from_opt_h.voxelsize).astype(np.uint8))
+   674	        image_output=segmentation_file_ref.replace('.inr','.seg_out_h.inr')
+\end{verbatim}
+\color{\mycolor}
+Ouverture morphologique (\'erosion puis dilatation) du masque de l'embryon, cela va lisser les cellules touchant le fond par l'ext\'erieur.
+\color{black}
+\begin{verbatim}
+   675	        morpho(image_input,image_output,' -ope -R '+str(RadiusOpening))
+   676	        opened=imread(image_output)
+   677	        cells_to_correct=[i for j in exterior_correction for i in j[1]]
+   678	        os.system('rm -f '+image_input+' '+image_output)
+\end{verbatim}
+\color{\mycolor}
+XOR entre le masque de l'embryon et son ouverture (qui y est inclus). La diff\'erence se trouve donc uniquement dans les cellules de \verb|seg_from_opt_h|.
+\color{black}
+\begin{verbatim}
+   679	        to_remove=opened^(seg_from_opt_h>1)
+   680	        
+\end{verbatim}
+\color{\mycolor}
+Plut\^ot que de faire une boucle sur les cellules, on pourrait juste les cellules \`a corriger de \verb|seg_from_opt_h| par le masque de l'ouverture ?
+\color{black}
+\begin{verbatim}
+   681	        for c in cells_to_correct:
+   682	            seg_from_opt_h[((seg_from_opt_h==c) & to_remove).astype(np.bool)]=1
+   683	    return seg_from_opt_h
+\end{verbatim}
+
+
+
+
+
+\subsection{\texttt{segmentation\_propagation\_seeds\_init\_and\_deform()}}
+\label{sec:segmentation:propagation:seeds:init:and:deform}
+\begin{verbatim}
+   686	def segmentation_propagation_seeds_init_and_deform(t, segmentation_ref, fused_file, seeds_file, vf_file, delta_t, verbose=False):
+\end{verbatim}
+\color{\mycolor}
+\begin{itemize}
+\itemsep -1ex
+\item \verb|t| : temps pour l'image de r\'ef\'erence, on va segmenter l'image suivante, ie $t+1$
+\item \verb|segmentation_ref| : image (ie \texttt{SpatialImage}) de segmentation \`a $t$, $S^{\star}_t$
+\item \verb|fused_file| : nom de l'image d'intensite (fusionn\'ee) \`a $t+1$, $I_{t+1}$
+\item \verb|vf_file| : nom de la  transformation non-lin\'eaire $\mathcal{T}_{t \leftarrow t+1}$
+\item \verb|delta_t| : pas de temps, l'image \`a segmenter est $I_{t+\delta t}$, g\'en\'eralement $\delta t = 1$
+\end{itemize}
+\color{black}
+\begin{verbatim}  
+   687	    """
+   688	    Steps 2 to 3 of segmentation propagation:
+   689	    create seeds from reference segmentation, then resample it by transformation application
+   690	    -> generation of seeds_file containing the image of seeds which will be used for segmentation propagation at t+delta_t
+   691	    """
+   692	    print 'Create The Seeds from '+str(t)
+   693	
+   694	    seeds_ref=create_seeds(segmentation_ref, max_size_cell=np.inf)
+\end{verbatim} 
+\color{\mycolor}
+Appel \`a \texttt{create\_seeds()}, cf section \ref{sec:create:seeds}, page \pageref{sec:create:seeds}.
+\verb|seeds_ref| est la \texttt{SpatialImage} $S^e_t$ \cite[section 2.3.3.4]{guignard:tel-01278725} o\`u les cellules de taille sup\'erieure \`a \verb|min_size_cell| (1000) sont \'erod\'ees d'au plus 10 it\'erations pour les cellules et 25 pour le fond.
+\color{black}
+\begin{verbatim}  
+   695	    imsave(seeds_file, SpatialImage(seeds_ref, voxelsize=seeds_ref.voxelsize))
+   696	    
+   697	    print 'Deform Seeds with vector fields from '+str(t)+' to '+str(t+delta_t)
+   698	    apply_trsf(seeds_file, vf_file , path_output=seeds_file, template=fused_file,nearest=True, lazy=True, verbose=verbose)
+\end{verbatim}
+\color{\mycolor}
+La derni\`ere ligne calcule $S^e_{t+1 \leftarrow t} = S^e_t \circ \mathcal{T}_{t \leftarrow t+1} $ \cite[section 2.3.3.4]{guignard:tel-01278725}.
+\color{black}
+
+
+
+
+
+\subsection{\texttt{segmentation\_propagation\_from\_seeds()}}
+\label{sec:segmentation:propagation:from:seeds}
+\begin{verbatim}
+   702	def segmentation_propagation_from_seeds(t, segmentation_file_ref, fused_file,  fused_file_u8 , seeds_file,path_seg_trsf, path_h_min, h_min_min,h_min_max, sigma, lin_tree_information, delta_t, nb_proc,
+   703	    RadiusOpening=20,Thau=25,MinVolume=1000,VolumeRatioBigger=0.5,VolumeRatioSmaller=0.1,MorphosnakeIterations=10,NIterations=200,DeltaVoxels=10**3,Volum_Min_No_Seed=100, delSeedsASAP=True, 
+   704	    verbose=False):
+\end{verbatim} 
+\color{\mycolor}
+\begin{itemize}
+\itemsep -1ex
+\item \verb|t| : temps pour l'image de r\'ef\'erence, on va segmenter l'image suivante, ie $t+1$
+\item \verb|segmentation_file_ref| : nom de l'image de segmentation \`a $t$, $S^{\star}_t$
+\item \verb|fused_file| : ce peut \^etre l'image originale $I_{t+1}$ ou  l'image \`a segmenter sur 1 octet. S'appelait \verb|graylevel_file| lors de l'appel
+\item \verb|fused_file_u8| : c'est l'image \`a segmenter sur 1 octet. S'appelait \verb|graylevel_file_u8| lors de l'appel
+\item \verb|seeds_file| : nom de l'image $S^e_{t+1 \leftarrow t} = S^e_t \circ \mathcal{T}_{t \leftarrow t+1}$, soit les graines projet\'ees (cellules de $S^{\star}_t$ \'erod\'ees puis transform\'ees dans $I_{t+1}$)
+\item \verb|path_seg_trsf| : nom de l'image de segmentation $S^{\star}_t$ transform\'ee dans $I_{t+1}$, soit
+$S^{\star}_t \circ \mathcal{T}_{t \leftarrow t+1}$
+\item \verb|path_h_min| : nom g\'en\'erique des images de $h_{min}$ (param\'etr\'e par \verb|TIME|, \verb|HMIN|, et \verb|SIGMA|),
+\end{itemize}
+\color{black}
+\begin{verbatim}  
+   705	    """
+   706	    Steps 4 to 9 of segmentation propagation:
+   707	    - initial watershed
+   708	    - computation of h-minima (get_seeds method)
+   709	    - optimal h selection for each cell (get_back_parameters method)
+   710	    - build a seeds image from previous information and new segmentation by watershed (get_seeds_from_optimized_parameters)
+   711	    - morphosnake if needed (called from volume_checking method)
+   712	    - last corrections with a morphological opening (outer_correction method)
+   713	    Returns seg_from_opt_h, lin_tree_information
+   714	        seg_from_opt_h : SpatialImage of the segmentation at t+delta_t
+   715	        lin_tree_information : updated lineage tree 
+   716	    """
+   717	    from copy import deepcopy
+   718	    lin_tree=lin_tree_information.get('lin_tree', {})
+   719	    tmp=lin_tree_information.get('volumes_information', {})
+   720	    volumes_t_1={k%10**4: v for k, v in tmp.iteritems() if k/10**4 == t}
+   721	    h_min_information={}
+   722	    
+   723	
+   724	    print 'Perform watershed with the seeds from method "segmentation_propagation_seeds_init_and_deform"'
+   725	    im_fused=imread(fused_file)
+   726	    im_fused_8=imread(fused_file_u8)
+   727	
+   728	
+   729	
+   730	    segmentation=watershed(seeds_file, im_fused_8, temporary_folder=os.path.dirname(path_seg_trsf), verbose=verbose)
+\end{verbatim} 
+\color{\mycolor}
+Calcule la segmentation $\tilde{S}_{t+1}$ par ligne de partage des eaux de $I_{t+1}$ avec les graines $S^e_{t+1 \leftarrow t} = S^e_t \circ \mathcal{T}_{t \leftarrow t+1}$. \verb|segmentation| est une \texttt{SpatialImage}
+\color{black}
+\begin{verbatim}  
+   731	    seeds=imread(seeds_file)
+   732	    if delSeedsASAP:
+   733	        cmd='rm %s'%seeds_file
+   734	        if verbose:
+   735	            print cmd
+   736	        os.system(cmd)
+   737	    cells=list(np.unique(segmentation))
+   738	    cells.remove(1)
+   739	    bounding_boxes=dict(zip(range(1, max(cells)+1), nd.find_objects(segmentation)))
+\end{verbatim} 
+\color{\mycolor}
+Calcul des bounding boxes pour les cellules 
+\color{black}
+\begin{verbatim}  
+   740	    treated=[]
+   741	
+   742	    print 'Estimation of the local h-minimas at '+str(t+delta_t)
+   743	    nb_cells, parameters=get_seeds(segmentation, h_min_min,h_min_max, sigma, cells, fused_file, path_h_min.replace('$SIGMA',str(sigma)), bounding_boxes, nb_proc=nb_proc, verbose=verbose)
+\end{verbatim} 
+\color{\mycolor}
+Appel \`a \texttt{get\_seeds()}, cf section \ref{sec:get:seeds}, page \pageref{sec:get:seeds}.
+\begin{itemize}
+\itemsep -1ex
+\item \verb|segmentation| : image de segmentation $\tilde{S}_{t+1}$ 
+\item \verb|h_min_min| : plus petite valeur de $h$ pour le calcul des $h$-minima
+\item \verb|h_min_max| : plus grande valeur de $h$ pour le calcul des $h$-minima
+\item \verb|sigma| : $\sigma$ pour le lissage gaussien avant le calcul des $h$-minima
+\item \verb|cells| : liste des cellules
+\item \verb|fused_file| : image originale $I_{t+1}$
+\item \verb|path_h_min| : nom g\'en\'erique pour les images de $h$-minima
+\item \verb|bounding_boxes| : boites englobantes des cellules
+\end{itemize}
+Retourne
+\begin{itemize}
+\itemsep -1ex
+\item \verb|nb_cells| : liste pour chaque cellule, du nombre de $h$-minima strictement inclus dans la cellule de  $\tilde{S}_{t+1}$. C'est le $\mathrm{Count}^{h}(c)$ de \cite[section 2.3.3.5, page 71]{guignard:tel-01278725}.
+\item \verb|parameters| : liste pour chaque cellule,  des param\`etres de calcul des $h$-minima ($h$ et $\sigma$)
+\end{itemize}
+\color{black}
+\begin{verbatim}  
+   744	  
+   745	    right_parameters, cells_with_no_seed=get_back_parameters(nb_cells, parameters, lin_tree, cells,Thau=Thau)
+\end{verbatim} 
+\color{\mycolor}
+Appel \`a \texttt{get\_back\_parameters()}, cf section \ref{sec:get:back:parameters}, page \pageref{sec:get:back:parameters}.
+\begin{itemize}
+\itemsep -1ex
+\item \verb|nb_cells| : liste pour chaque cellule, du nombre de $h$-minima strictement inclus dans la cellule de  $\tilde{S}_{t+1}$. C'est le $\mathrm{Count}^{h}(c)$ de \cite[section 2.3.3.5, page 71]{guignard:tel-01278725}.
+\item \verb|parameters| : liste pour chaque cellule,  de tous les param\`etres de calcul des $h$-minima ($h$ et $\sigma$)
+\item \verb|lin_tree| : fichier de lin\'eage
+\item \verb|cells| : liste des cellules
+\item \verb|Thau| : $\tau$ pour le calcul du score $s(c) = N_{2^{+}}(c) . N_2(c) > \tau$ \cite[page 72]{guignard:tel-01278725}.
+\end{itemize}
+Retourne un tableau avec, pour chaque cellule $c$, les valeurs de $h$, $\sigma$, et le nombre de graines, ainsi que la liste des cellules sans graines (c'est redondant, puisque ce sont les cellules avec 0 graines).
+\color{black}
+\begin{verbatim}
+   746	    
+\end{verbatim} 
+\color{\mycolor}
+Appel \`a \texttt{get\_seeds\_from\_optimized\_parameters()}, cf section \ref{sec:get:seeds:from:optimized:parameters}, page \pageref{sec:get:seeds:from:optimized:parameters}.
+\begin{itemize}
+\itemsep -1ex
+\item \verb|t| : temps pour l'image de r\'ef\'erence, on va segmenter l'image suivante, ie $t+1$
+\item \verb|segmentation| :  image de segmentation $\tilde{S}_{t+1}$, \texttt{SpatialImage}
+\item \verb|cells| : liste des cellules
+\item \verb|cells_with_no_seed| : liste des cellules sans graines
+\item \verb|right_parameters| : ($h$, $\sigma$, nombre de graines) optimaux pour chaque cellule
+\item \verb|delta_t| :
+\item \verb|bounding_boxes| : boites englobantes pour les cellules
+\item \verb|im_fused_8| : $I_{t+1}$ sur un octet, \texttt{SpatialImage}
+\item \verb|seeds| : $S^e_{t+1 \leftarrow t} = S^e_t \circ \mathcal{T}_{t \leftarrow t+1}$, soit les graines projet\'ees (cellules de $S^{\star}_t$ \'erod\'ees puis transform\'ees dans $I_{t+1}$), \texttt{SpatialImage}
+\item \verb|parameters| : liste pour chaque cellule,  des param\`etres de calcul des $h$-minima ($h$ et $\sigma$)
+\end{itemize}
+\color{black}
+\begin{verbatim} 
+   747	    print 'Applying volume correction '+str(t+delta_t)
+   748	    seeds_from_opt_h, seg_from_opt_h, corres, exterior_corres, h_min_information, sigma_information, divided_cells, label_max = get_seeds_from_optimized_parameters(t, segmentation, cells, cells_with_no_seed, 
+   749	        right_parameters, delta_t, bounding_boxes, im_fused_8, seeds, parameters, h_min_max, path_h_min, sigma,Volum_Min_No_Seed=Volum_Min_No_Seed, verbose=verbose)
+\end{verbatim}
+\color{\mycolor}
+Retourne
+\begin{itemize}
+\itemsep -1ex
+\item \verb|seeds_from_opt_h| : une \texttt{SpatialImage} contenant les graines 
+\item \verb|seg_from_opt_h| : une \texttt{SpatialImage} contenant la segmentation
+\item \verb|corres| : un tableau contenant les filiations
+\item \verb|exterior_corres| : une liste contenant la filiation pour le fond (inutile ?)
+\item \verb|h_min_information| : une liste contenant les valeurs de $h$ utilisées pour chaque cellule
+\item \verb|sigma_information| : une liste contenant les valeurs de $\sigma$ utilisées pour chaque cellule
+\item \verb|divided_cells| : une liste contenant les couples de cellules soeurs
+\item \verb|label_max| : le plus grand label utilisé (+1)
+\end{itemize}
+\color{black}
+\begin{verbatim}
+   750	    
+   751	    print 'Perform volume checking '+str(t+delta_t)
+\end{verbatim} 
+\color{\mycolor}
+Appel \`a \texttt{volume\_checking()}, cf section \ref{sec:volume:checking}, page \pageref{sec:volume:checking}.
+\begin{itemize}
+\itemsep -1ex
+\item \verb|t| : temps pour l'image de r\'ef\'erence, on va segmenter l'image suivante, ie $t+1$
+\item \verb|delta_t| : 
+\item \verb|segmentation| : image de segmentation $\tilde{S}_{t+1}$, \texttt{SpatialImage}
+\item \verb|seeds_from_opt_h| : une \texttt{SpatialImage} contenant les graines (obtenues avec les param\`etres optimaux pour chaque cellule)
+\item \verb|seg_from_opt_h| : une \texttt{SpatialImage} contenant la segmentation obtenue avec les graines de \verb|seeds_from_opt_h| 
+\item \verb|corres| : un tableau contenant les filiations de chaque cellule de la segmentation \`a $t$
+\item \verb|divided_cells| : une liste contenant les couples de cellules soeurs
+\item \verb|bounding_boxes| : boites englobantes pour les cellules
+\item \verb|right_parameters| : ($h$, $\sigma$, nombre de graines) optimaux pour chaque cellule
+\item \verb|im_fused_8| : $I_{t+1}$ sur un octet, \texttt{SpatialImage}
+\item \verb|im_fused| : $I_{t+1}$ sur un ou deux octet, \texttt{SpatialImage}
+\item \verb|seeds| : $S^e_{t+1 \leftarrow t} = S^e_t \circ \mathcal{T}_{t \leftarrow t+1}$, soit les graines projet\'ees (cellules de $S^{\star}_t$ \'erod\'ees puis transform\'ees dans $I_{t+1}$) \texttt{SpatialImage}
+\item \verb|nb_cells| : liste pour chaque cellule, du nombre de $h$-minima strictement inclus dans la cellule de  $\tilde{S}_{t+1}$. C'est le $\mathrm{Count}^{h}(c)$ de \cite[section 2.3.3.5, page 71]{guignard:tel-01278725}.
+\item \verb|label_max| :  le plus grand label utilisé pour les graines (+1)
+\item \verb|exterior_corres| : une liste contenant la filiation (les labels des graines) pour le fond (inutile ?)
+\item \verb|parameters| : liste pour chaque cellule,  de tous les param\`etres de calcul des $h$-minima ($h$ et $\sigma$)
+\item \verb|h_min_information| : une liste contenant les valeurs de $h$ utilisées pour chaque cellule
+\item \verb|sigma_information| : une liste contenant les valeurs de $\sigma$ utilisées pour chaque cellule
+\item \verb|segmentation_file_ref| : nom de l'image de segmentation \`a $t$, $S^{\star}_t$
+\item \verb|path_seg_trsf| : om de l'image de segmentation $S^{\star}_t$ transform\'ee dans $I_{t+1}$, soit
+$S^{\star}_t \circ \mathcal{T}_{t \leftarrow t+1}$
+\item \verb|path_h_min| : nom g\'en\'erique pour les images de $h$-minima
+\item \verb|volumes_t_1| : liste des volumes des cellules \`a $t$ (provient de la lecture du lin\'eage)
+\item \ldots
+\end{itemize}
+\color{black}
+\begin{verbatim} 
+   752	    seg_from_opt_h, bigger, lower, to_look_at, too_little, corres, exterior_correction = volume_checking(t,delta_t,segmentation, seeds_from_opt_h, seg_from_opt_h, corres, divided_cells, bounding_boxes, right_parameters, 
+   753	        im_fused_8, im_fused, seeds, nb_cells, label_max, exterior_corres, parameters, h_min_information, sigma_information, segmentation_file_ref, path_seg_trsf, path_h_min, volumes_t_1, 
+   754	        nb_proc=nb_proc,Thau=Thau, MinVolume=MinVolume,VolumeRatioBigger=VolumeRatioBigger,VolumeRatioSmaller=VolumeRatioSmaller,MorphosnakeIterations=MorphosnakeIterations,NIterations=NIterations ,DeltaVoxels=DeltaVoxels)
+\end{verbatim}
+\color{\mycolor}
+\texttt{volume\_checking()} retourne
+\begin{itemize}
+\itemsep -1ex
+\item \verb|seg_from_opt_h| : image de segmentation
+\item \verb|bigger| : liste des couples (m\`ere, filles) o\`u les filles ont un volume plus grand (de plus de 10\%) de celui de la m\`ere
+\item \verb|lower| : liste des couples (m\`ere, filles) o\`u les filles ont un volume plus petit (de plus de 10\%) de celui de la m\`ere
+\item \verb|to_look_at| : liste des couples initiaux (m\`ere, filles) o\`u les filles avaient un volume plus petit (de plus de 50\%) de celui de la m\`ere. A priori, les filles ont \'et\'e recalcul\'ees, donc cette liste n'est plus \`a jour.
+\item \verb|too_little| : liste des couples initiaux (m\`ere, fille) o\`u la fille avait un petit volume (inf\'erieur \`a 1000 voxels). Ces filles ont a priori disparu.
+\item \verb|corres| : table des correspondances (m\`ere, filles), il peut y rester des incoh\'erences.
+\item \verb|exterior_correction| : liste des couples (m\`ere, filles) o\`u les filles ont un volume plus petit (de plus de 10\%) de celui de la m\`ere, et proches du fond, sur lesquels on lancera le morphosnake.
+\end{itemize}
+\color{black}
+\begin{verbatim}
+   755	
+   756	    print 'Perform Outer Correction '+str(t+delta_t)
+\end{verbatim}
+\color{\mycolor}
+Appel \`a \texttt{outer\_correction()}
+(section \ref{sec:outer:correction}, page \pageref{sec:outer:correction})
+\begin{itemize}
+\itemsep -1ex
+\item \verb|seg_from_opt_h| : image de segmentation
+\item \verb|exterior_correction| : liste des couples (m\`ere, filles) o\`u les filles ont un volume plus petit (de plus de 10\%) de celui de la m\`ere, et proches du fond, sur lesquels on a lanc\'e le morphosnake.
+\item \verb|segmentation_file_ref| : nom de l'image de segmentation \`a $t$, $S^{\star}_t$ (le nom sert juste pour cr\'eer des noms d'images interm\'ediaires qui seront effac\'ees)
+\item \verb|RadiusOpening| : \verb|RadiusOpening|= 20
+\end{itemize}
+\color{black}
+\begin{verbatim}
+   757	    seg_from_opt_h = outer_correction(seg_from_opt_h, exterior_correction,segmentation_file_ref,RadiusOpening=RadiusOpening)
+   758	
+   759	    print 'Compute Volumes'+str(t+delta_t)
+   760	    volumes=compute_volumes(seg_from_opt_h)
+   761	    volumes_information={}
+   762	    for k, v in volumes.iteritems():
+   763	        volumes_information[(t+delta_t)*10**4+k]=v
+   764	    for m, d in corres.iteritems():
+   765	        if m!=1:
+   766	            daughters=[]
+   767	            for c in d:
+   768	                if c in volumes:
+   769	                    daughters.append(c+(t+delta_t)*10**4)
+   770	                else:
+   771	                    print str(c) +' is not segmented'
+   772	            if len(daughters)>0:
+   773	                lin_tree[m+t*10**4]=daughters
+   774	    lin_tree_information['lin_tree']=lin_tree
+   775	    lin_tree_information.setdefault('volumes_information', {}).update(volumes_information)
+   776	    lin_tree_information.setdefault('h_mins_information', {}).update(h_min_information)
+   777	    lin_tree_information.setdefault('sigmas_information', {}).update(sigma_information)
+   778	
+   779	    return seg_from_opt_h, lin_tree_information
+\end{verbatim}
+
+
+
+
+
+\subsection{\texttt{segmentation\_propagation()}}
+\label{sec:segmentation:propagation}
+\begin{verbatim}
+   782	def segmentation_propagation(t, fused_file_ref, segmentation_file_ref, fused_file , seeds_file,vf_file, path_h_min, h_min_min,h_min_max, sigma, lin_tree_information, delta_t, nb_proc,
+   783	    membrane_reconstruction_method=None, fusion_u8_method=0, flag_hybridation=False, 
+   784	    RadiusOpening=20,Thau=25,MinVolume=1000,VolumeRatioBigger=0.5,VolumeRatioSmaller=0.1,MorphosnakeIterations=10,NIterations=200,DeltaVoxels=10**3,Volum_Min_No_Seed=100, 
+   785	    rayon_dil=3.6, sigma_membrane=0.9, manual=False, manual_sigma=7, hard_thresholding=False, hard_threshold=1.0, sensitivity=0.99, sigma_TV=3.6, sigma_LF=0.9, sample=0.2, 
+   786	    keep_membrane=False, keep_all=False,  path_u8_images=None, nb_proc_ACE=7, 
+   787	    min_percentile=0.01, max_percentile=0.99, min_method='cellinterior', max_method='cellborder', sigma_hybridation=5.0, 
+   788	    verbose=False):
+\end{verbatim} 
+\color{\mycolor}
+\begin{itemize}
+\itemsep -1ex
+\item \verb|t| : temps pour l'image de r\'ef\'erence, on va segmenter l'image suivante, ie $t+1$
+\item \verb|fused_file_ref| : nom de l'image d'intensite (fusionn\'ee) \`a $t$, $I_t$
+\item \verb|segmentation_file_ref| : nom de l'image de segmentation \`a $t$, $S^{\star}_t$
+\item \verb|fused_file| : nom de l'image d'intensite (fusionn\'ee) \`a $t+1$, $I_{t+1}$
+\item \verb|seeds_file| : nom de l'image des graines (s'appelait \verb|seed_file|  lors de l'appel)
+\item \verb|vf_file| : nom de la  transformation non-lin\'eaire $\mathcal{T}_{t \leftarrow t+1}$
+\item \verb|path_h_min| : nom g\'en\'erique des images de $h_{min}$ (param\'etr\'e par \verb|TIME|, \verb|HMIN|, et \verb|SIGMA|), s'appelait \verb|h_min_files| lors de l'appel
+\end{itemize}
+\color{black}
+\begin{verbatim}
+   789	    '''
+   790	    Return the propagated segmentation at time t+dt and the updated lineage tree and cell informations
+   791	    t : time t
+   792	    fused_file_ref : path format to fused images
+   793	    segmentation_file_ref : path format to segmentated seeds_images
+   794	    fused_file : fused image at t+dt
+   795	    vf_file : path format to transformation
+   796	    path_h_min : path format to h-minima files
+   797	    h_min_max : maximum value of the h-min value for h-minima operator
+   798	    sigma : sigma value in voxels for gaussian filtering
+   799	    lin_tree_information : dictionary containing the lineage tree dictionary, volume information, h_min information and sigma information for every cells
+   800	    delta_t : value of dt (in number of time point)
+   801	    nb_proc : number maximum of processors to allocate
+   802	
+   803	    # Modules choice
+   804	
+   805	    membrane_reconstruction_method : if not set or set to 0, the input fused_file is not processed for membrane structures enhancement.
+   806	                                     if set to 1, the GLACE reconstruction method is going to be called
+   807	                                     if set to 2, the GACE reconstruction method is going to be called
+   808	
+   809	    fusion_u8_method : select method to convert fused_file into a 8 bits images for the segmentation propagation. 
+   810	                       if set to 0 (default), calling the historical "to_u8" method
+   811	                       if set to 1, calling the mc_adhocFuse function which enhances the fused image while converting it to u8 
+   812	                       knowing the semgnetation propagation from previous time point
+   813	
+   814	    flag_hybridation : if set to True and if the membrane_reconstruction_method parameter is provided and not equal to 0, 
+   815	                       then the reconstructed gray level image
+   816	                       used for semgentation_propragation_from_seeds is goind to be ahybridation between the original image
+   817	                       fused_file and the result of image reconstruction by the specified method.
+   818	    
+   819	    path_u8_images : default is None. If provided, saves a copy of the u8 image used for watershed process at the specified path.
+   820	
+   821	
+   822	
+   823	    # Glace Parameters (if membrane_reconstruction_method is set to 1 or 2):
+   824	    # membrane_renforcement
+   825	    sigma_membrane=0.9  # membrane enhancement parameter (in real units, a
+   826	                        # priori 0.9 um is a good choice for data like 
+   827	                        # Patrick/Ralph/Aquila)
+   828	    # anisotropicHist /!\ critical step
+   829	    sensitivity=0.99    # membrane binarization parameter, /!\ if failure,
+   830	                        # one should enter in "manual" mode of the function
+   831	                        # anisotropicHist via activation of 'manual' option
+   832	
+   833	    manual=False        # By default, this parameter is set to False. If 
+   834	                        # failure, (meaning that thresholds are very bad, 
+   835	                        # meaning that the binarized image is very bad),
+   836	                        # set this parameter to True and relaunch the 
+   837	                        # computation on the test image. If the method fails
+   838	                        # again, "play" with the value of manual_sigma... 
+   839	                        # and good luck.
+   840	    manual_sigma=15     # Axial histograms fitting initialization parameter 
+   841	                        # for the computation of membrane image binarization
+   842	                        # axial thresholds (this parameter is used iif 
+   843	                        # manual = True).
+   844	                        # One may need to test different values of 
+   845	                        # manual_sigma. We suggest to test values between 5 and
+   846	                        # 25 in case of initial failure. Good luck.
+   847	
+   848	    hard_thresholding=False   # If the previous membrane threshold method 
+   849	                              # failed, one can force the thresholding with a
+   850	                              # "hard" threshold applied on the whole image. 
+   851	                              # To do so, this option must be set to True.
+   852	    hard_threshold=1.0        # If hard_thresholding = True, the enhanced 
+   853	                              # membranes image is thresholded using this 
+   854	                              # parameter (value 1 seems to be ok for 
+   855	                              # time-point t001 of Aquila embryo for example).
+   856	
+   857	    # Tensor voting framework
+   858	    sigma_TV=3.6    # parameter which defines the voting scale for membrane
+   859	                    # structures propagation by tensor voting method (real
+   860	                    # coordinates). 
+   861	                    # This parameter shoud be set between 3 um (little cells)
+   862	                    # and 4.5 um(big gaps in the binarized membrane image)
+   863	    sigma_LF=0.9    # Smoothing parameter for reconstructed image (in real
+   864	                    # coordinates). It seems that the default value = 0.9 um
+   865	                    # is ok for classic use.
+   866	    sample=0.2      # Parameter for tensor voting computation speed 
+   867	                    # optimisation (do not touch if not bewared)
+   868	    rayon_dil=3.6   # dilatation ray for propagated ROI from time t to t+1
+   869	                    # (default: 3.6, in real coordinates) 
+   870	
+   871	    nb_proc_ACE=7   # number of processors for ACE (7 is recommanded)
+   872	
+   873	    '''
+   874	    segmentation_ref=imread(segmentation_file_ref);
+   875	
+   876	
+   877	    print 'Compute Vector Fields from '+str(t)+' to '+str(t+delta_t)
+   878	    non_linear_registration(fused_file_ref,\
+   879	                        fused_file, \
+   880	                        vf_file.replace('.inr','_affine.inr'), \
+   881	                        vf_file.replace('.inr','_affine.trsf'),\
+   882	                        vf_file.replace('.inr','_vector.inr'),\
+   883	                        vf_file);
+\end{verbatim}
+\color{\mycolor}
+Calcul de la transformation non-lin\'eaire $\mathcal{T}_{t \leftarrow t+1}$. \texttt{non\_linear\_registration()} est dans \texttt{ASTEC/CommunFunctions/cpp\_wrapping.py}
+\color{black}
+\begin{verbatim}
+   884	
+   885	    cmd='rm -f '+vf_file.replace('.inr','_affine.inr')+' '+vf_file.replace('.inr','_affine.trsf')+' '+vf_file.replace('.inr','_vector.inrf')
+   886	    if verbose:
+   887	        print cmd
+   888	    os.system(cmd)
+   889	
+   890	    segmentation_propagation_seeds_init_and_deform(t, segmentation_ref, fused_file, seeds_file, vf_file, delta_t, verbose=verbose)
+\end{verbatim} 
+\color{\mycolor}
+Appel \`a \texttt{segmentation\_propagation\_seeds\_init\_and\_deform()}, cf section \ref{sec:segmentation:propagation:seeds:init:and:deform}, page \pageref{sec:segmentation:propagation:seeds:init:and:deform}.
+\verb|seeds_file| est le nom de l'image $S^e_{t+1 \leftarrow t} = S^e_t \circ \mathcal{T}_{t \leftarrow t+1}$ \cite[section 2.3.3.4]{guignard:tel-01278725}, soit les graines projet\'ees (cellules de $S^{\star}_t$ \'erod\'ees puis transform\'ees dans $I_{t+1}$).
+\color{black}
+\begin{verbatim}  
+   891	
+   892	
+   893	    # graylevel image construction for segmentation propagation
+   894	
+   895	    # defining temporary file paths 
+   896	    graylevel_file=vf_file.replace('.inr','_graylevel.inr')         # The first input gray level image for segmentation_propagation_from_seeds
+   897	    graylevel_file_u8=vf_file.replace('.inr','_graylevel_u8.inr')   # The second input gray level image for segmentation_propagation_from_seeds (must be a 8 bits image)
+   898	    fused_file_u8=vf_file.replace('.inr','_fuse_u8.inr')            # Temporary file
+   899	    path_seg_trsf=vf_file.replace('.inr','_seg_trsf.inr')           # Temporary file
+   900	
+   901	    # segmentation propagation 
+   902	    apply_trsf(segmentation_file_ref, path_trsf=vf_file, path_output=path_seg_trsf, template=fused_file, nearest=True, verbose=verbose)
+\end{verbatim} 
+\color{\mycolor}
+\verb|path_seg_trsf| est le nom de l'image de segmentation $S^{\star}_t$ transform\'ee dans $I_{t+1}$, soit
+$S^{\star}_t \circ \mathcal{T}_{t \leftarrow t+1}$
+\color{black}
+\begin{verbatim}  
+   903	
+   904	    # transformation file deletion
+   905	    cmd='rm -f '+vf_file
+   906	    if verbose:
+   907	        print cmd
+   908	    os.system(cmd)
+   909	
+   910	
+   911	    # fused file u8 vconversion if needed
+   912	    if flag_hybridation or not membrane_reconstruction_method:
+   913	        if  fusion_u8_method==1:
+   914	            mc_adhocFuse(fused_file, path_seg_trsf, fused_file_u8, min_percentile=min_percentile, max_percentile=max_percentile, 
+   915	                         min_method=min_method, max_method=max_method, sigma=sigma_hybridation, verbose=verbose)
+   916	        else:
+   917	            imsave(fused_file_u8, to_u8(imread(fused_file)))
+   918	
+   919	    # Switch membrane_reconstruction_method
+   920	    if not membrane_reconstruction_method:
+   921	        copy(fused_file_u8, graylevel_file_u8, verbose=verbose)
+   922	        copy(fused_file, graylevel_file, verbose=verbose)
+   923	    if membrane_reconstruction_method == 1:
+   924	        # GLACE reconstruction 
+   925	        GLACE_from_resampled_segmentation(fused_file, path_seg_trsf, labels_of_interest='all', background=[0,1], 
+   926	        path_output=graylevel_file, rayon_dil=rayon_dil, 
+   927	        sigma_membrane=sigma_membrane, manual=manual, manual_sigma=manual_sigma, hard_thresholding=hard_thresholding, 
+   928	        hard_threshold=hard_threshold, sensitivity=sensitivity, sigma_TV=sigma_TV, sigma_LF=sigma_LF, sample=sample, 
+   929	        keep_membrane=keep_membrane, keep_all=keep_all,  nb_proc=nb_proc_ACE, verbose=verbose)   
+   930	    if membrane_reconstruction_method == 2:
+   931	        # GACE reconstruction
+   932	        out=GACE(fused_file, binary_input=False, path_output=graylevel_file, 
+   933	        sigma_membrane=sigma_membrane, manual=manual, manual_sigma=manual_sigma, hard_thresholding=hard_thresholding, 
+   934	        hard_threshold=hard_threshold, sensitivity=sensitivity, sigma_TV=sigma_TV, sigma_LF=sigma_LF, sample=sample, 
+   935	        keep_membrane=keep_membrane, keep_all=keep_all, verbose=verbose)
+   936	
+   937	
+   938	
+   939	    # reconstructed image and fused image hybridation if needed
+   940	    if membrane_reconstruction_method:
+   941	        if flag_hybridation:
+   942	            Arit(fused_file_u8, graylevel_file, graylevel_file, Mode='max', Type='-o 1', verbose=verbose)
+   943	        copy(graylevel_file, graylevel_file_u8, verbose=verbose)
+   944	
+   945	    # temporary images deletion
+   946	    if os.path.exists(fused_file_u8):
+   947	        cmd='rm -f '+fused_file_u8
+   948	        if verbose:
+   949	            print cmd
+   950	        os.system(cmd)
+   951	
+   952	    # u8 image copy if asked
+   953	    if path_u8_images:
+   954	        copy(graylevel_file_u8, path_u8_images, verbose=verbose)
+   955	
+   956	    # segmentation propagation stuff from seeds
+   957	    seg_from_opt_h, lin_tree_information = segmentation_propagation_from_seeds(t, segmentation_file_ref, graylevel_file, graylevel_file_u8, seeds_file,path_seg_trsf, 
+   958	                                                                               path_h_min, h_min_min,h_min_max, sigma, lin_tree_information, delta_t, nb_proc,
+   959	                                                                               RadiusOpening=RadiusOpening,Thau=Thau,MinVolume=MinVolume,VolumeRatioBigger=VolumeRatioBigger,
+   960	                                                                               VolumeRatioSmaller=VolumeRatioSmaller,MorphosnakeIterations=MorphosnakeIterations,
+   961	                                                                               NIterations=NIterations,DeltaVoxels=DeltaVoxels,Volum_Min_No_Seed=Volum_Min_No_Seed, 
+   962	                                                                               delSeedsASAP=True, verbose=verbose)
+\end{verbatim} 
+\color{\mycolor}
+Appel \`a \texttt{segmentation\_propagation\_from\_seeds()}, cf section \ref{sec:segmentation:propagation:from:seeds}, page \pageref{sec:segmentation:propagation:from:seeds}.
+\begin{itemize}
+\itemsep -1ex
+\item \verb|t| : temps pour l'image de r\'ef\'erence, on va segmenter l'image suivante, ie $t+1$
+\item \verb|segmentation_file_ref| : nom de l'image de segmentation \`a $t$, $S^{\star}_t$
+\item \verb|graylevel_file| : ce peut \^etre l'image originale $I_{t+1}$ ou  l'image \`a segmenter sur 1 octet
+\item \verb|graylevel_file_u8| : c'est l'image \`a segmenter sur 1 octet
+\item \verb|seeds_file| : nom de l'image $S^e_{t+1 \leftarrow t} = S^e_t \circ \mathcal{T}_{t \leftarrow t+1}$, soit les graines projet\'ees (cellules de $S^{\star}_t$ \'erod\'ees puis transform\'ees dans $I_{t+1}$)
+\item \verb|path_seg_trsf| : nom de l'image de segmentation $S^{\star}_t$ transform\'ee dans $I_{t+1}$, soit
+$S^{\star}_t \circ \mathcal{T}_{t \leftarrow t+1}$
+\item \verb|path_h_min| : nom g\'en\'erique des images de $h_{min}$ (param\'etr\'e par \verb|TIME|, \verb|HMIN|, et \verb|SIGMA|),
+\end{itemize}
+\color{black}
+\begin{verbatim}  
+   963	
+   964	    # temporary images deletion
+   965	    if os.path.exists(path_seg_trsf):
+   966	        cmd='rm -f '+path_seg_trsf
+   967	        if verbose:
+   968	            print cmd
+   969	        os.system(cmd)
+   970	
+   971	    if os.path.exists(graylevel_file):
+   972	        cmd='rm -f '+graylevel_file
+   973	        if verbose:
+   974	            print cmd
+   975	        os.system(cmd)
+   976	
+   977	    if os.path.exists(graylevel_file_u8):
+   978	        cmd='rm -f '+graylevel_file_u8
+   979	        if verbose:
+   980	            print cmd
+   981	        os.system(cmd)
+   982	
+   983	    return seg_from_opt_h, lin_tree_information
+\end{verbatim}
+
+
+
+
+
+\bibliographystyle{unsrt}
+\bibliography{bib-astec}
+
+\end{document}

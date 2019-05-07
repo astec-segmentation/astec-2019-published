@@ -1,0 +1,315 @@
+
+\section*{Before starting}
+
+It is advised to add to your \texttt{PATH} environment variable the path to the astec package. So, Astec commands can be launched without specifying the complete path to the command.
+
+It can be done in a terminal (and will be valid only for this terminal)
+\begin{code}{0.8}
+\$ export PATH=\${PATH}:/path/to/astec-package
+\end{code}
+or by modifying a setup file (e.g. \texttt{bashrc}, \texttt{.profile}, \ldots).
+
+
+
+
+
+
+
+
+
+
+\section{Starting with a toy embryo}
+
+Say we have an embryo named \texttt{160708-Tutorial} with four time points (these are the four first time points of the embryo \texttt{160708-Aquila-St8}). Thus at the beginning, we only have the raw data in the \texttt{<EMBRYO>=160708-Tutorial} file tree structure.
+\dirtree{%
+.1 <EMBRYO>=160708-Tutorial.
+.2 RAWDATA.
+.3 LC.
+.4 Stack0000.
+.5 Cam\_Left\_00001.zip.
+.5 Cam\_Left\_00002.zip.
+.5 Cam\_Left\_00003.zip.
+.5 Cam\_Left\_00004.zip.
+.4 Stack0001.
+.5 Cam\_Left\_00001.zip.
+.5 Cam\_Left\_00002.zip.
+.5 Cam\_Left\_00003.zip.
+.5 Cam\_Left\_00004.zip.
+.3 RC.
+.4 Stack0000.
+.5 Cam\_Right\_00001.zip.
+.5 Cam\_Right\_00002.zip.
+.5 Cam\_Right\_00003.zip.
+.5 Cam\_Right\_00004.zip.
+.4 Stack0001.
+.5 Cam\_Right\_00001.zip.
+.5 Cam\_Right\_00002.zip.
+.5 Cam\_Right\_00003.zip.
+.5 Cam\_Right\_00004.zip.
+}
+
+
+
+
+
+
+
+
+
+
+\section{Fusing data}
+
+Let start by fusing data. I advised to create a \texttt{PARAMETERS} repository under the root \texttt{<EMBRYO>=160708-Tutorial} to store all the parameters file we will use. Then we copy there the \texttt{parameters.py} file and rename it as \texttt{parameters-fuse1.py}. I added \texttt{-fuse} to easily recognize it as a parameter file for fusing, and also add the numbering \texttt{1} to handle the case of several parameters files for fusing (if fusion parameters have to be changed for a few time points).
+
+\begin{code}{0.8}
+\$ cd /path/to/160708-Tutorial\\
+\$ mkdir PARAMETERS\\
+\$ cp /path/to/astec-package/parameters.py  PARAMETERS/parameters-fuse1.py
+\end{code}
+
+
+Then, this file \texttt{parameters-fuse1.py} is edited to be adapted to our experiment at hand. Here, the modification are as follows. Note that we only have the following changes with respect to the template version of the parameter file (see section \ref{sec:parameters:original}).
+
+\begin{verbatim}
+     ...
+     5	PATH_EMBRYO='/Users/greg/COLLABORATIONS/DIGEM/TUTO-ASTEC/160708-Tutorial'	
+     ...
+     9	EN='160708-Tutorial'			
+     ... 
+    16	EXP_FUSE='EXP1'	
+     ...
+    44	end=4   				 
+     ...
+    58	raw_ori = 'right' 				
+     ...
+    60	raw_resolution = (.21, .21, 1.) 
+     ...
+    68	raw_mirrors = True  			
+     ...
+\end{verbatim}
+
+We have then the following file tree.
+
+\dirtree{%
+.1 <EMBRYO>=160708-Tutorial.
+.2 RAWDATA.
+.3 \ldots .
+.2 PARAMETERS.
+.3 parameters-fuse1.py.
+}
+
+Now we can run the fusion
+
+\begin{code}{0.8}
+\$ cd /path/to/160708-Tutorial\\
+\$ 1-fuse.py -p PARAMETERS/parameters-fuse1.py 
+\end{code}
+
+After completion of the fusing stage, the tree structure is 
+\dirtree{%
+.1 <EMBRYO>=160708-Tutorial.
+.2 RAWDATA.
+.3 \ldots .
+.2 PARAMETERS.
+.3 \ldots .
+.2 FUSE.
+.3 FUSE\_EXP1.
+.4 1-fuse.log.
+.4 160708-Tutorial\_fuse\_t001.inr.
+.4 160708-Tutorial\_fuse\_t002.inr.
+.4 160708-Tutorial\_fuse\_t003.inr.
+.4 160708-Tutorial\_fuse\_t004.inr.
+.4 parameters-fuse1.py.
+}
+
+The folder \texttt{FUSE\_EXP1} not only contains the fused images, but also a copy of the parameter file (hence the importance that all parameter files have different names) as well as a \texttt{log} file (\texttt{1-fuse.log}) that keeps trace of all the Astec launched commands. However, it won't keep trace of the other commands (e.g. the user erases a file), thus it is still important to keep all this elsewhere.
+
+
+
+
+
+
+
+
+
+
+\section{Segmenting the first time point}
+
+The segmentation of the first time point consists in labeling each and every cell of the embryo. By convention, the background has the 1 label (0 is used when label images are resampled). Thus cell labels are always larger or equal than 2.
+
+Although any method can be used to obtain this segmentation, the script \texttt{2-mars.py} provide a means to use the \texttt{MARS} method \cite{fernandez:hal-00521491}.
+
+Again the parameter file \texttt{parameters.py} is copied  and renamed to eventually edit it. 
+
+
+\begin{code}{0.8}
+\$ cd /path/to/160708-Tutorial\\
+\$ cp /path/to/astec-package/parameters.py  PARAMETERS/parameters-seg-first1.py
+\end{code}
+
+
+
+Then, this file \texttt{parameters-seg-first1.py} is edited. The changes with respect to the template version of the parameter file (see section \ref{sec:parameters:original}) are
+
+\begin{verbatim}
+     ...
+     5	PATH_EMBRYO='/Users/greg/COLLABORATIONS/DIGEM/TUTO-ASTEC/160708-Tutorial'	
+     ...
+     9	EN='160708-Tutorial'			
+     ... 
+    16	EXP_FUSE='EXP1'	
+     ...
+    26	EXP_MARS='EXPMARS1'		
+     ...
+\end{verbatim}
+
+Note that the line \#16 indicates where to find the fused images.
+The segmentation is done through
+
+\begin{code}{0.8}
+\$ cd /path/to/160708-Tutorial\\
+\$ 2-mars.py -p PARAMETERS/parameters-seg-first1.py 
+\end{code}
+
+
+After completion of the segmentation stage, the tree structure is 
+\dirtree{%
+.1 <EMBRYO>=160708-Tutorial.
+.2 RAWDATA.
+.3 \ldots .
+.2 PARAMETERS.
+.3 \ldots .
+.2 FUSE.
+.3 FUSE\_EXP1.
+.4 \ldots .
+.2 SEG.
+.3 SEG\_EXPMARS1.
+.4 160708-Tutorial\_mars\_t001.inr.
+.4 2-mars.log.
+.4 parameters-seg-first1.py.
+}
+
+Note the name of the result image with the \texttt{\_mars} suffix. Such a naming convention is mandatory and has to be followed in case of segmentation by other means.
+
+
+
+
+
+
+
+
+
+
+\section{Correcting the first time point segmentation}
+
+As the sequence segmentation proceeds by propagation, the first segmentation must be cured. Under-segmentations may be corrected either by changing segmentation parameters and to relaunch the \texttt{2-mars.py}  script or by manual edition (then be careful not to use an already used label). Over-segmentations can be automatically corrected (after identification). They have to be listed into a file whom lines contains two numbers, the labels to be merged (more precisely, only the second label will be kept) . E.g.
+\begin{code}{0.8}
+43 54\\
+38 20
+\end{code}
+means that cells of labels 43 and 54 will be merged together (forming a cell of label 54), as well as cells of labels 38 and 20 (forming a cell of label 20).
+The file \texttt{/path/to/astec-package/mapping.txt} is a template for this merging.
+
+
+Again, copy the parameter template file, as well as the merging template file (cells to be merged have to identified beforehand).
+
+\begin{code}{0.8}
+\$ cd /path/to/160708-Tutorial\\
+\$ cp /path/to/astec-package/parameters.py PARAMETERS/parameters-seg-correction1.py \\
+\$ cp /path/to/astec-package/mapping.txt PARAMETERS/mancor\_mapping\_file.txt
+\end{code}
+
+and edit the two files. The second file contains only the two lines indicated above.
+The changes with respect to the template version of the parameter file are
+
+\begin{verbatim}
+     ...
+     5	PATH_EMBRYO='/Users/greg/COLLABORATIONS/DIGEM/TUTO-ASTEC/160708-Tutorial'	
+     ...
+     9	EN='160708-Tutorial'			
+     ... 
+    16	EXP_FUSE='EXP1'	
+     ...
+    26	EXP_MARS='EXPMARS1'		
+     ...
+    28	EXP_SEG='EXPSEG1'
+     ...
+   186	mancor_mapping_file='PARAMETERS/mancor_mapping_file.txt' 
+     ...
+\end{verbatim}
+
+Note that the line \#186 gives the (here relative) name of the file containing the cells to be merged. The \texttt{MARS} result is supposed to be found in the \texttt{SEG/EXPMARS1} folder (given by the variable \texttt{EXP\_MARS})  while the correction result will be placed into the \texttt{SEG/EXPSEG1} folder (given by the variable \texttt{EXP\_SEG})
+
+
+\begin{code}{0.8}
+\$ cd /path/to/160708-Tutorial\\
+\$ 3-manualcorrection.py -p PARAMETERS/parameters-seg-correction1.py 
+\end{code}
+
+After completion of this stage, we have:
+\dirtree{%
+.1 <EMBRYO>=160708-Tutorial.
+.2 RAWDATA.
+.3 \ldots .
+.2 PARAMETERS.
+.3 \ldots .
+.2 FUSE.
+.3 FUSE\_EXP1.
+.4 \ldots .
+.2 SEG.
+.3 SEG\_EXPMARS1.
+.4 \ldots .
+.3 SEG\_EXPSEG1.
+.4 160708-Tutorial\_seg\_t001.inr.
+.4 3-manualcorrection.log.
+.4 mancor\_mapping\_file.txt.
+.4 parameters-seg-correction1.py.
+}
+
+Note the name of the result image with the \texttt{\_seg} suffix.
+
+
+
+
+
+
+
+
+
+
+\section{Segmentation propagation}
+
+
+\begin{code}{0.8}
+\$ cd /path/to/160708-Tutorial\\
+\$ cp /path/to/astec-package/parameters.py PARAMETERS/parameters-astec.py\\
+\end{code}
+
+
+
+\begin{verbatim}
+     ...
+     5	PATH_EMBRYO='/Users/greg/COLLABORATIONS/DIGEM/TUTO-ASTEC/160708-Tutorial'	
+     ...
+     9	EN='160708-Tutorial'			
+     ... 
+    16	EXP_FUSE='EXP1'		
+     ...
+    28	EXP_SEG='EXPSEG1'
+     ...
+    44	end=4   
+     ...
+\end{verbatim}
+
+
+
+\begin{code}{0.8}
+\$ cd /path/to/160708-Tutorial\\
+\$ 4-astec.py -p PARAMETERS/parameters-astec.py 
+\end{code}
+
+
+
+
+
+

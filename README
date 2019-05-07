@@ -1,0 +1,198 @@
+********************************************************************************
+**************************************** ASTEC *********************************
+********************************************************************************
+
+This file contains instructions for installing and running the ASTEC reconstruction algorithm.
+
+
+I - CONTENTS OF THE  REPOSITORY
+-------------------------------
+The folder contains the following elements:
+	- definitions.py   : the definitions of the folder process and the RAWDATA parameters (time / angle etc..)
+	- ASTEC  : the folder  containing all the libraries 
+	- 1-fuse.py 
+	- 2-mars.py
+	- 3-manualcorrection.py        
+	- 4-astec.py
+	- 5-postcorrection.py
+	- 6-named.py
+	- 7-virtualembryo.py 
+	- checklineage.py : tools for check lineage safety 
+	- rename.py : tools to rename file 
+	- README : the licence terms you accept by using the workflow
+	- license.txt   : the licence terms you accept by using the workflow
+
+        
+II - INSTALLATION AND SOFTWARE REQUIREMENTS
+-------------------------------------------
+
+ASTEC can run only on Linux system and was test on :
+ - Unbuntu 14.04 64 bits.
+
+
+	II.i - REQUIREMENTS
+	------------------- 
+	    In order to be able to compile the diffrenet source code you need to install several packages, mostly from the terminal application.
+
+		to run the different codes:
+			* python 2.7 or higher  
+				-> Installation : Should be installed, refer with command line `python -V` to get the version or visit  http://php.net 
+			* and a c compiler
+				-> Installation : Should be installed, refer with command line `dpkg --list | grep compiler` to get list of avaiblable C compiler version or install gcc with `sudo apt-get install gcc`
+
+		the install libraries are necessary:
+			* pip, an installer for python (https://pypi.python.org/pypi/pip)
+				-> Installation : run command line `sudo apt-get install python-pip python-dev build-essential` 
+			* cmake , a softwere to build source code (http://www.cmake.org)
+				-> Installation : run command line `sudo apt-get install cmake` 
+
+		the following libraries are necessary:
+			* numpy,scipy,matplotlib, different scientific packages for python  (http://www.numpy.org, http://www.scipy.org, http://matplotlib.org)
+				->  Installation : run command line `sudo apt-get install python-numpy python-scipy python-matplotlib ipython ipython-notebook python-pandas python-sympy python-nose`
+			* jupyter notebook a open-source framework to share scientific code (http://jupyter.org)
+				->  Installation : run command line `sudo pip install jupyter`
+			* zlib, a compression library	(http://www.zlib.net) :
+				->  Installation : run command line `sudo apt-get install zlib1g-dev`
+			*libhdf5-dev,cython,h5py  a library to read/write hdf5 images (https://www.hdfgroup.org/HDF5/)
+				->  Installation : run command line `sudo apt-get install libhdf5-dev`, 
+										   then run `sudo pip install cython`, 
+										   then run `sudo pip install h5py`
+			*pylibtiff  a library to read/write tiff/tif images (https://pypi.python.org/pypi/libtiff/)
+				->  Installation : run `cd path/to/Package/ASTEC/CommunFunctions/libtiff-0.4.0/; sudo python setup.py install`
+
+	II.ii - INSTALLATION
+	--------------------
+      You need to clone the morpheme_privat project in your computer:
+        run `cd <morpheme-privat_parent_directory>`
+        run `git clone git+ssh://<username>@scm.gforge.inria.fr/gitroot/morpheme-privat/morpheme-privat.git`
+        Please note that for this step, you may need to ask for an account on the inria gforge and for the access to the morpheme-privat project (for further information, contact gregoire.malandain@inria.fr)
+      Then you need to compile the dependencies LEMON, NIFTICLIB, TIFF in <morpheme-privat_parent_directory>/external
+      by creating in each subrepository a build folder, going in it, and run:
+        run `ccmake ..`
+        then configure, generate and quit (for NIFTICLIB, please take note that you should set the CMAKE_C_FLAGS to value '-fPIC' in the advanced mode ; you need therefore to press 't' to toogle advanced mode)
+        run `make -j<nb proc>` where <nb proc> is the number of processor require to compile the code 
+      Then go to <morpheme-privat_parent_directory>/vt directory and follow these instructions:
+        run `mkdir build`
+			  run `cd build`
+			  run `ccmake ..`
+			  Press 'c' to configure
+			  At this step, set the links to the build folders of NIFTI, LEMON and TIFF
+			  Press 'c' to re-configure
+			  Press 'g' to generate and 'q' to quit
+			  run `make -j<nb proc>` where <nb proc> is the number of processor require to compile the code 
+			
+    Previously :
+    ------------
+	    Since the vt library is compiled, you need to create the symbolic link of the folder <morpheme-privat_parent_directory>/vt to ASTEC/CommunFunctions/cpp:
+		  in a terminal:
+			  run `cd path/to/Package/ASTEC/CommunFunctions`
+        ln -s <complete_path_of_vt_folder> cpp
+
+    From version v2.0 :
+    -------------------
+	    Since the vt library is compiled, you need to create the symbolic link of the folder <morpheme-privat_parent_directory>/vt/build/bin to ASTEC/CommunFunctions/cpp:
+		  in a terminal:
+			  run `cd path/to/Package/ASTEC/CommunFunctions`
+        ln -s <complete_path_of_bin_folder> cpp
+
+	II.iii - TROUBELSHOOTING
+  	-------------------------
+  	???
+
+
+
+ III - RUNNING ASTEC
+ -------------------
+
+    Previously :
+    ------------
+Different manual steps are required to process the workflow
+
+- Copy the entire folder to the dataset folder 
+- update definitions.py with this dataset information only the first lines have to be updated such as :
+	# RAWDATA DEFINITION
+	begin=4 #Stating point
+	end=95 #Last Point
+
+	delta = 1 # Delta between two time points (if one does not want to fuse every single time point)
+	ori = 'right' # if im2 angle - im1 angle < 0 => right
+	resolution = (.17, .17, 1.) # Resolution of the raw images
+	delay = 0 # If the time stamps in the folder are not the actual time stamps in the global movie
+	mirrors = False  #TO COMMENT
+	target_resolution = .3 # Isotropic resolution of the final fused image
+
+- Check the raw data file named 
+- Launch the fusion : python 1-fusion.py
+- Launch the segmentation of the first time step : python 2-mars.py
+- Check the file in FUSE/SEG/<EN>_fuse_seg_t<time_begin>_mars.tiff to fuse oversegmentation and maps them in the file 3-manualcorrection.py 
+- Launch the manual segmentation : python 3-manualcorrection.py        
+- Launch the global segmentation (very long) : python 4-astec.py
+- Launch the post segmentation : python 5-postcorrection.py
+- Create a file with the correspond names with the first time step in  media/DATA/<<EN>>/<EN>-names.txt
+	with this format : <pixel id (from tiff file)>:<cell name> 
+- Launch the named : python 6-named.py
+- Upload the embryon in 4DCloudEmbryon with : python 7-virtualembryo.py 
+
+    From version v2.0 :
+    -------------------
+Data architecture 
+    <EMBRYO>
+        RAWDATA
+            LC
+                Stack0000
+                Stack0001
+            RC
+                Stack0000
+                Stack0001
+        FUSE
+            FUSE_<EXP_1>
+            FUSE_<EXP_2>
+            ...
+            FUSE_RELEASE
+        SEG
+            SEG_<EXP>
+            ...
+            SEG_RELEASE
+        POST
+            POST_<EXP>
+            ...
+            POST_RELEASE
+
+"RELEASE" sub-directories should content the "last version" validated by an expert.
+
+Particular files:
+    nomenclature.py : file fixing the set of naming rules in working directories
+      -> this file should not be modified
+    parameters.py : file defining the set of parameters useful for all the process steps (parameters are all prefixed with respect to the step they are used in).
+      -> it is a "template" file which should be duplicated and whose copy can be modified by the user to its convenience (only the parameter values should be modified, not their name...).
+
+The scripts of steps 1-fuse.py, 2-mars.py, 3-manualcorrection.py, 4-astec.py, 5-postcorrection.py are executables, so that each astec step calling can be made as described here:
+For example, in order to launch the fusion step on an embryo called "171107-Karine-St8", one should:
+
+    Duplicate the file <astec-package>/parameters.py -> new file <arbitrary-path>/parameters_karine.py
+    Edition of file <arbitrary-path>/parameters_karine.py to specify the desired value of each parameter related to the fusion step
+    In a terminal,
+        $ cd <astec-package> # in order to be in the astec directory (/media/DATA/Codes/astec-package on Hermione)
+        $ ./1-fuse.py --parameters  <arbitrary-path>/parameters_karine.py --embryo-rep /media/DATA/171107-Karine-St8/
+        (or equivalently,a shorter format)
+        $ ./1-fuse.py -p  <arbitrary-path>/parameters_karine.py -e /media/DATA/171107-Karine-St8/
+
+At each astec step execution, a copy of the parameters file as well as a log file are automatically generated in the target working directory.
+
+For each astec step, it is possible to display the help relative to the corresponding script by launching the script with the option '--help'. For example, for the fusion step:
+
+    In a terminal, launch the command line:
+        $ <astec-package>/1-fuse.py --help
+    The terminal displays the following message:
+
+    Usage: 1-fuse.py [options]
+
+    Options:
+      -h, --help            show this help message and exit
+      -p FILE, --parameters=FILE
+                                python file containing parameters definition
+      -e PATH, --embryo-rep=PATH
+                                path to the embryo data
+      -q, --quiet          don't print status messages to stdout
+
+

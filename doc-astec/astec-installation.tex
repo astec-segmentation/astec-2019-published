@@ -1,0 +1,188 @@
+
+
+ASTEC can run only on Linux system and was tested on:
+\begin{itemize}
+\item Ubuntu 14.04 64 bits
+\end{itemize}
+
+
+
+\section{Requirements}
+In order to be able to compile the different source code you need to install several packages, mostly from the terminal application.
+	    
+\subsection{to run the different codes:}
+\begin{itemize}
+\item python 2.7 or higher  
+
+Installation:
+\begin{itemize}
+\item Linux: Should be installed, refer with command line 
+
+\texttt{`python -V`} 
+
+to get the version or visit  \url{http://php.net}
+\end{itemize}
+\item and a C compiler
+
+Installation
+\begin{itemize}
+\item Linux: Should be installed, refer with command line 
+
+\texttt{`dpkg --list | grep compiler`} 
+
+to get list of available C compiler version or install \texttt{gcc} with 
+
+\texttt{`sudo apt-get install gcc`}
+\end{itemize}
+\end{itemize}
+
+
+\subsection{the install libraries are necessary:}
+\begin{itemize}
+\item \texttt{pip}, an installer for python (\url{https://pypi.org/project/pip/}). 
+Installation:
+\begin{itemize}
+\item Linux: run command line 
+
+\texttt{`sudo apt-get install python-pip python-dev build-essential`}
+\item Others: see \textit{Installation} from \url{https://pypi.org/project/pip/}
+\end{itemize}
+\item \texttt{cmake}, a software to build source code (\texttt{http://www.cmake.org})
+\begin{itemize}
+\item Linux: run command line 
+
+\texttt{`sudo apt-get install cmake`}
+\item Others: see \textit{Download} from \url{https://cmake.org/}
+\end{itemize}
+\end{itemize}
+
+
+
+
+\subsection{the following python libraries are necessary:}
+\begin{itemize}
+\item numpy, scipy, matplotlib: different scientific packages for python  
+(\url{http://www.numpy.org}, \url{http://www.scipy.org}, \url{http://matplotlib.org}).
+
+Installation
+\begin{itemize}
+\item Linux: run command line 
+
+\texttt{`sudo apt-get install python-numpy python-scipy python-matplotlib ipython ipython-notebook python-pandas python-sympy python-nose`}
+\end{itemize}
+
+\item jupyter notebook: a open-source framework to share scientific code (\texttt{http://jupyter.org})
+
+Installation:
+\begin{itemize}
+\item Linux: run command line 
+
+\texttt{`sudo pip install jupyter`}
+\end{itemize}
+
+ \item libhdf5-dev,cython,h5py  a library to read/write hdf5 images (\url{https://www.hdfgroup.org/HDF5/})
+ 
+ Installation:
+ \begin{itemize}
+ \item Linux: run the command lines for a global installation
+ 
+ \texttt{`sudo apt-get install libhdf5-dev`}
+ 
+ \texttt{`sudo pip install cython`}
+ 
+ \texttt{`sudo pip install h5py`}
+ 
+ or 
+ 
+  \texttt{`pip install --user cython`}
+ 
+ \texttt{`pip install --user h5py`}
+ 
+ \end{itemize}
+
+ \item pylibtiff  a library to read/write tiff/tif images (\url{https://pypi.python.org/pypi/libtiff/}).
+ 
+ Installation:
+\begin{itemize} 
+\item  You can install the pylibtiff distributed with ASTEC
+ 
+\texttt{`cd path/to/Package/ASTEC/CommunFunctions/libtiff-0.4.0/; sudo python setup.py install`}
+
+\item Alternatively:
+
+\texttt{`sudo pip install libtiff`}
+
+or 
+
+\texttt{`pip install --user libtiff`}
+\end{itemize}
+\end{itemize}
+
+\subsection{the following  libraries are necessary:}
+\begin{itemize}
+\item \texttt{zlib}, a compression library (\texttt{http://www.zlib.net})
+
+Installation (if not already installed)
+\begin{itemize}
+\item Linux: run command line 
+
+\texttt{`sudo apt-get install zlib1g-dev`}
+
+\end{itemize}
+
+\item \texttt{libtiff}, \url{http://libtiff.org}
+				
+\end{itemize}
+
+
+\section{Installation}
+      You need to clone the \texttt{morpheme-privat} project in your computer: run 
+        
+\texttt{`cd <morpheme-privat\_parent\_directory>`}
+
+\texttt{`git clone git+ssh://<username>@scm.gforge.inria.fr/gitroot/morpheme-privat/morpheme-privat.git`}
+
+        Please note that for this step, you may need to ask for an account on the inria gforge and for the access to the morpheme-privat project (for further information, contact \url{gregoire.malandain@inria.fr})
+        
+Then you need to compile the dependencies LEMON, NIFTICLIB, TIFF in \texttt{<morpheme-privat\_parent\_directory>/external}
+by creating in each subrepository a build folder, going in it, and run:
+
+\texttt{`ccmake ..`}
+
+then configure, generate and quit (for NIFTICLIB, please take note that you should set the \texttt{CMAKE\_C\_FLAGS} to value '-fPIC' in the advanced mode ; you need therefore to press 't' to toogle advanced mode)
+
+        run \texttt{`make -j<nb proc>`} where \texttt{<nb proc>} is the number of processor require to compile the code 
+      Then go to \texttt{<morpheme-privat\_parent\_directory>/vt} directory and follow these instructions:
+
+\texttt{`mkdir build`}
+
+\texttt{`cd build`}
+
+\texttt{`ccmake ..`}
+
+Press 'c' to configure. At this step, set the links to the build folders of NIFTI, LEMON and TIFF. Press 'c' to re-configure. Press 'g' to generate and 'q' to quit.
+
+Run \texttt{`make -j<nb proc>`} where \texttt{<nb proc>} is the number of processor require to compile the code 
+			
+\subsection{Previously}
+	    Since the vt library is compiled, you need to create the symbolic link of the folder \texttt{<morpheme-privat\_parent\_directory>/vt} to \texttt{ASTEC/CommunFunctions/cpp}.
+ in a terminal:
+ 
+ \texttt{`cd path/to/Package/ASTEC/CommunFunctions`}
+ 
+ \texttt{ln -s <complete\_path\_of\_vt\_folder> cpp}
+
+\subsection{From version v2.0}
+
+	    Since the vt library is compiled, you need to create the symbolic link of the folder \texttt{<morpheme-privat\_parent\_directory>/vt/build/bin} to \texttt{ASTEC/CommunFunctions/cpp}.
+in a terminal:
+
+ \texttt{`cd path/to/Package/ASTEC/CommunFunctions`}
+ 
+ \texttt{ln -s <complete\_path\_of\_bin\_folder> cpp}
+ 
+ 
+ \section{Troubleshooting}
+
+
+
