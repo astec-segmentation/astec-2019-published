@@ -1,7 +1,5 @@
 # specific files and folders     #
 ##################################
-ASTEC/CommunFunctions/cpp
-ASTEC/CommunFunctions/cpp_old
 ASTEC/CommunFunctions/libtiff-0.4.0.zip
 ASTEC/CommunFunctions/ImageHandling.zip
 

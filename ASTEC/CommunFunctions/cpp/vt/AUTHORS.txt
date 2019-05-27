@@ -1,0 +1,2 @@
+Gregoire Malandain <gregoire.malandain@inria.fr>
+Gael Michelin <gael.michelin@inria.fr>
