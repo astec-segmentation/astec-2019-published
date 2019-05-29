@@ -183,6 +183,7 @@ class AstecParameters(object):
 
         #
         # magic values for the volume checking
+        # - volume_minimal_value is in volxel units
         #
         self.volume_ratio_tolerance = 0.1
         self.volume_ratio_threshold = 0.5
@@ -1015,8 +1016,6 @@ def _volume_checking(previous_segmentation, segmentation_from_selection,
 
     proc = "_volume_checking"
 
-    print(str(n_seeds))
-
     #
     # compute volumes
     #
@@ -1028,8 +1027,9 @@ def _volume_checking(previous_segmentation, segmentation_from_selection,
     curr_volumes = _compute_volumes(curr_seg)
 
     #
-    # process background
+    # process whole embryo
     #
+
     prev_embryo_volume = prev_seg.size - prev_volumes[1]
     curr_embryo_volume = curr_seg.size - curr_volumes[1]
 
@@ -1038,21 +1038,26 @@ def _volume_checking(previous_segmentation, segmentation_from_selection,
     # volume_ratio is the opposite of the fraction of volume lose for the
     # volume from previous time compared to current time
     #
-    # volume_ratio < 0 => current volume < previous volume
-    # volume_ratio > 0 => current volume > previous volume
+    # volume_ratio < 0 => previous volume > current volume
+    # volume_ratio > 0 => previous volume < current volume
     #
 
     volume_ratio = 1.0 - prev_embryo_volume/curr_embryo_volume
+
+    #
+    # default value of parameters.volume_ratio_tolerance is 0.1
+    #
+
     if -parameters.volume_ratio_tolerance <= volume_ratio <= parameters.volume_ratio_tolerance:
         pass
     else:
         if volume_ratio < 0:
-            monitoring.to_log_and_console('    .. background has strongly diminished', 2)
+            monitoring.to_log_and_console('    .. embryo volume has strongly diminished', 2)
         else:
-            monitoring.to_log_and_console('    .. background has strongly increased', 2)
+            monitoring.to_log_and_console('    .. embryo volume has strongly increased', 2)
 
     #
-    # lists of (parent, children)
+    # lists of (parent (cell at t), children (cell(s) at t+dt))
     #
     # large_volume_ratio          : volume(mother)   <  SUM volume(childrens)
     # small_volume_ratio          : volume(mother)   >  SUM volume(childrens)
@@ -1071,7 +1076,7 @@ def _volume_checking(previous_segmentation, segmentation_from_selection,
         # skip background
         #
         if mother_c == 1:
-            pass
+            continue
 
         #
         # check whether the volumes exist
@@ -1084,6 +1089,8 @@ def _volume_checking(previous_segmentation, segmentation_from_selection,
                 monitoring.to_log_and_console('    ' + proc + ': no volume for cell ' + str(s)
                                               + ' in current segmentation', 2)
 
+        print str(mother_c) + " " + str(sisters_c) + " " + str(len(sisters_c))
+
         #
         # compute ratios
         #
@@ -1094,7 +1101,8 @@ def _volume_checking(previous_segmentation, segmentation_from_selection,
         volume_ratio = 1.0 - prev_volumes[mother_c] / np.sum([curr_volumes.get(s, 1) for s in sisters_c])
 
         #
-        # admissible ratio, check whether the daughter cell are large enough
+        # admissible ratio, check whether the daughter cell(s) are large enough
+        # default value of parameters.volume_ratio_tolerance is 0.1
         #
         if -parameters.volume_ratio_tolerance <= volume_ratio <= parameters.volume_ratio_tolerance:
             for s in sisters_c:
@@ -1103,6 +1111,7 @@ def _volume_checking(previous_segmentation, segmentation_from_selection,
         else:
         #
         # non-admissible ratios
+        # default value of parameters.volume_ratio_threshold is 0.5
         #
             if volume_ratio > 0:
                 large_volume_ratio.append((mother_c, sisters_c))
@@ -1119,9 +1128,12 @@ def _volume_checking(previous_segmentation, segmentation_from_selection,
 
     #
     # here we look at cells that experiment a large decrease of volume
+    # ie vol(mother) >> vol(daughter(s))
     # this is the step (1) of section 2.3.3.6 of L. Guignard thesis
+    # [corresponds to the list to_look_at in historical astec code]
     #
     for cell in abnormal_small_volume_ratio:
+        monitoring.to_log_and_console('      process cell with large decrease of volume', 2)
         #
         # this is similar to _select_seed_parameters()
         # it has already been done ?!
@@ -1427,6 +1439,8 @@ def astec_control(experiment, environment, parameters):
     last_time_point = experiment.last_time_point + experiment.delay_time_point
 
     lineage_tree_information = lineage.read_lineage_tree(environment.path_seg_exp_lineage)
+    # print environment.path_seg_exp_lineage
+    # print lineage_tree_information
 
     if len(lineage_tree_information) > 0 and 'lin_tree' in lineage_tree_information:
         monitoring.to_log_and_console("    .. test '" + str(environment.path_seg_exp_lineage) + "'", 1)
@@ -1468,9 +1482,11 @@ def astec_control(experiment, environment, parameters):
                 monitoring.to_log_and_console("       time '" + str(t) + "' seems ok", 1)
             t += 1
         first_time_point = restart
-        monitoring.to_log_and_console(proc + ": restart computation at time '" + str(first_time_point) + "'", 1)
+        monitoring.to_log_and_console("    .. " + proc + ": restart computation at time '"
+                                      + str(first_time_point) + "'", 1)
     else:
-        monitoring.to_log_and_console(proc + ": start computation at time '" + str(first_time_point) + "'", 1)
+        monitoring.to_log_and_console("    .. " + proc + ": start computation at time '"
+                                      + str(first_time_point) + "'", 1)
 
     #
     #

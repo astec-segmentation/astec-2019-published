@@ -339,6 +339,68 @@ def get_parameter_file(parameter_file):
 #
 ########################################################################################
 
+def _write_git_information(path, logfile, desc):
+    """
+
+    :param path:
+    :param logfile:
+    :param desc:
+    :return:
+    """
+    gitremote = 'git remote get-url origin'
+    gitdescribe = 'git describe'
+    gitlog = 'git log -n 1 --format="Commit (tag, date, ref): %H -- %cD -- %D"'
+
+
+    logfile.write(str(desc) + " path: ")
+
+    pipe = subprocess.Popen("cd " + path + "; " + "pwd" + "; cd " + str(os.getcwd()),
+                            shell=True, stdout=subprocess.PIPE).stdout
+    o = pipe.next()
+    v = o.split('\n')
+    logfile.write(str(v[0] + "\n"))
+
+    logfile.write(str(desc) + " repository: ")
+
+    # if not os.path.exists(path + os.path.sep + '.git'):
+    #     logfile.write("not found\n")
+    #     return
+
+    pipe = subprocess.Popen("cd " + path + "; " + gitremote + "; cd " + str(os.getcwd()),
+                            shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+    (stdoutData, stderrData) = pipe.communicate()
+
+
+
+    if len(stderrData) > 6:
+        if stderrData[0:6] == "fatal:":
+            logfile.write("no a git repository\n")
+        else:
+            logfile.write("no a git repository?\n")
+    elif len(stderrData) > 0:
+        logfile.write("no a git repository?!\n")
+    else:
+        v = stdoutData.split('\n')
+        logfile.write(str(v[0] + "\n"))
+
+        logfile.write(str(desc) + " version: ")
+        pipe = subprocess.Popen("cd " + path + "; " + gitdescribe + "; cd " + str(os.getcwd()),
+                                shell=True, stdout=subprocess.PIPE).stdout
+        o = pipe.next()
+        v = o.split('\n')
+        logfile.write("#\t" + str(v[0] + "\n"))
+
+        pipe = subprocess.Popen("cd " + path + "; " + gitlog + "; cd " + str(os.getcwd()),
+                                shell=True, stdout=subprocess.PIPE).stdout
+        o = pipe.next()
+        v = o.split('\n')
+        logfile.write("#\t" + str(v[0] + "\n"))
+
+    return
+
+
+
+
 
 def write_history_information(logfile_name,
                               experiment=None,
@@ -370,22 +432,9 @@ def write_history_information(logfile_name,
         logfile.write("# User: '" + str(getpass.getuser()) + "'\n")
         logfile.write("# Python executable: " + sys.executable + "\n")
         if path_to_exe is not None:
-            logfile.write("# ASTEC version: ")
-            if not os.path.exists(path_to_exe+os.path.sep+'.git'):
-                logfile.write("not found\n")
-            else:
-                pipe = subprocess.Popen("cd "+path_to_exe+"; git describe; cd "+str(os.getcwd()),
-                                        shell=True, stdout=subprocess.PIPE).stdout
-                o = pipe.next()
-                v = o.split('\n')
-                logfile.write(str(v[0]+"\n"))
+            _write_git_information(path_to_exe, logfile, "# ASTEC")
         if path_to_vt is not None:
-            logfile.write("# VT version: ")
-            pipe = subprocess.Popen("cd "+path_to_vt+"; git describe; cd "+str(os.getcwd()),
-                                    shell=True, stdout=subprocess.PIPE).stdout
-            o = pipe.next()
-            v = o.split('\n')
-            logfile.write(str(v[0]+"\n"))
+            _write_git_information(path_to_vt, logfile, "# VT")
         logfile.write("# \n")
     return
 

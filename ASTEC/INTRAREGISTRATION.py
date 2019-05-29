@@ -558,6 +558,7 @@ def _get_file_suffix(experiment, data_path, file_format):
 
     suffixes = {}
     nimages = 0
+    nfiles = 0
 
     #
     # get and count suffixes for images
@@ -573,12 +574,19 @@ def _get_file_suffix(experiment, data_path, file_format):
             if f[0:len(file_prefix)] == file_prefix and f[len(file_prefix)] == '.':
                 suffix = f[len(file_prefix) + 1:len(f)]
                 suffixes[suffix] = suffixes.get(suffix, 0) + 1
+                nfiles += 1
 
         nimages += 1
 
     for s, n in suffixes.items():
         if n == nimages:
             return s
+
+    if nfiles < nimages:
+        monitoring.to_log_and_console(proc + ": weird, not enough images '" + str(file_format)
+                                      + "' were found in '" + str(data_path) + "'", 0)
+        monitoring.to_log_and_console("\t Exiting.", 0)
+        exit(1)
 
     monitoring.to_log_and_console(proc + ": no common suffix for '" + str(file_format)
                                   + "' was found in '" + str(data_path) + "'", 2)
@@ -792,7 +800,7 @@ def _transformations_and_template(experiment, environment, parameters, temporary
     cpp_wrapping.change_multiple_trsfs(format_input, format_output, first_time_point, last_time_point, reference_index,
                                        result_template, trsf_type=parameters.registration.transformation_type,
                                        resolution=parameters.resolution, threshold=parameters.template_threshold,
-                                       margin=parameters.margin, format_template=template_format, monitoring=None)
+                                       margin=parameters.margin, format_template=template_format, monitoring=monitoring)
 
     return
 
@@ -825,11 +833,11 @@ def _resample_images(experiment, environment, parameters, dir_input, format_inpu
     b = os.path.basename(template_image)
     d = os.path.dirname(template_image)
     local_template_name = commonTools.find_file(d, b, monitoring)
-    local_template_image = os.path.join(d, local_template_name)
-    if local_template_image is None:
+    if local_template_name is None:
         monitoring.to_log_and_console(proc + ": template '" + str(b) + "' was not found in '" + str(d) + "'", 1)
         monitoring.to_log_and_console("\t resampling will not be done")
         return
+    local_template_image = os.path.join(d, local_template_name)
 
     #
     #

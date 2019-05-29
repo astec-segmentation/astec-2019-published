@@ -50,6 +50,7 @@ Thumbs.db
 
 # particular directories #
 ######################
+.idea/
 .svn/
 build/
 build*/
