@@ -385,10 +385,13 @@ def _write_git_information(path, logfile, desc):
 
         logfile.write(str(desc) + " version: ")
         pipe = subprocess.Popen("cd " + path + "; " + gitdescribe + "; cd " + str(os.getcwd()),
-                                shell=True, stdout=subprocess.PIPE).stdout
-        o = pipe.next()
-        v = o.split('\n')
-        logfile.write("#\t" + str(v[0] + "\n"))
+                                shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+        (stdoutData, stderrData) = pipe.communicate()
+        if len(stderrData) > 0:
+            logfile.write("no version found\n")
+        else:
+            v = stdoutData.split('\n')
+            logfile.write(str(v[0] + "\n"))
 
         pipe = subprocess.Popen("cd " + path + "; " + gitlog + "; cd " + str(os.getcwd()),
                                 shell=True, stdout=subprocess.PIPE).stdout

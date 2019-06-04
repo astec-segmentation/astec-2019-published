@@ -591,7 +591,7 @@ class FusionParameters(object):
         # images suffixes/formats
         #
         if hasattr(parameters, 'RESULT_IMAGE_SUFFIX_FUSE'):
-            if parameters.result_image_suffix is not None:
+            if parameters.RESULT_IMAGE_SUFFIX_FUSE is not None:
                 self.result_image_suffix = parameters.RESULT_IMAGE_SUFFIX_FUSE
         if hasattr(parameters, 'result_image_suffix'):
             if parameters.result_image_suffix is not None:
@@ -613,7 +613,7 @@ class FusionParameters(object):
 
 
 __extension_to_be_converted__ = ['.h5', '.tif', '.tiff', '.TIF', '.TIFF']
-__extension_with_resolution__ = ['.inr', '.mha']
+__extension_with_resolution__ = ['.inr', '.inr.gz', '.mha', '.mha.gz']
 
 
 def _read_image_name(data_path, temporary_path, file_name, resolution, default_extension='inr'):
