@@ -66,10 +66,10 @@ class FusionChannel(object):
 
         parameters = imp.load_source('*', parameter_file)
 
-        self.path_angle1 = nomenclature.replaceFlags(nomenclature.path_rawdata_angle1, parameters)
-        self.path_angle2 = nomenclature.replaceFlags(nomenclature.path_rawdata_angle2, parameters)
-        self.path_angle3 = nomenclature.replaceFlags(nomenclature.path_rawdata_angle3, parameters)
-        self.path_angle4 = nomenclature.replaceFlags(nomenclature.path_rawdata_angle4, parameters)
+        self.path_angle1 = nomenclature.replaceFlags(nomenclature.path_rawdata_angle1, parameters).replace("//", "/")
+        self.path_angle2 = nomenclature.replaceFlags(nomenclature.path_rawdata_angle2, parameters).replace("//", "/")
+        self.path_angle3 = nomenclature.replaceFlags(nomenclature.path_rawdata_angle3, parameters).replace("//", "/")
+        self.path_angle4 = nomenclature.replaceFlags(nomenclature.path_rawdata_angle4, parameters).replace("//", "/")
 
         if not os.path.isdir(self.path_angle1) or not os.path.isdir(self.path_angle2) \
                 or not os.path.isdir(self.path_angle3) or not os.path.isdir(self.path_angle4):
