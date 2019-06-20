@@ -507,10 +507,16 @@ class FusionParameters(object):
         if hasattr(parameters, 'raw_ori'):
             if parameters.raw_ori is not None:
                 self.acquisition_orientation = parameters.raw_ori
+        elif hasattr(parameters, 'acquisition_orientation'):
+            if parameters.acquisition_orientation is not None:
+                self.acquisition_orientation = parameters.acquisition_orientation
 
         if hasattr(parameters, 'raw_mirrors'):
             if parameters.raw_mirrors is not None:
                 self.acquisition_mirrors = parameters.raw_mirrors
+        elif hasattr(parameters, 'acquisition_mirrors'):
+            if parameters.acquisition_mirrors is not None:
+                self.acquisition_mirrors = parameters.acquisition_mirrors
 
         if hasattr(parameters, 'raw_resolution'):
             if parameters.raw_resolution is not None:
@@ -526,6 +532,23 @@ class FusionParameters(object):
                 else:
                     print("Error in'" + parameter_file + "'")
                     print("\t type of 'raw_resolution' (" + str(type(parameters.raw_resolution))
+                          + ") is not handled")
+                    print("\t Exiting.")
+                    sys.exit(1)
+        elif hasattr(parameters, 'acquisition_resolution'):
+            if parameters.acquisition_resolution is not None:
+                if type(parameters.acquisition_resolution) is tuple or type(parameters.acquisition_resolution) is list:
+                    if len(parameters.acquisition_resolution) == 3:
+                        self.acquisition_resolution = parameters.acquisition_resolution
+                    else:
+                        print("Error in'" + parameter_file + "'")
+                        print("\t 'acquisition_resolution' has length " + str(len(parameters.acquisition_resolution))
+                              + " instead of 3.")
+                        print("\t Exiting.")
+                        sys.exit(1)
+                else:
+                    print("Error in'" + parameter_file + "'")
+                    print("\t type of 'acquisition_resolution' (" + str(type(parameters.acquisition_resolution))
                           + ") is not handled")
                     print("\t Exiting.")
                     sys.exit(1)

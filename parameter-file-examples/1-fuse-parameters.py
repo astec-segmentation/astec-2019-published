@@ -149,30 +149,30 @@ raw_resolution = (.17, .17, 1.)
 # acquisition_leftcam_image_prefix = ''
 # acquisition_rightcam_image_prefix = ''
 
-# ##### explanation #####
-#
-# raw data file names
-#
-# allows to specify prefix name of the raw data
-# may be useful when several camera acquisitions are stored into
-# the same directory. Eg, if one has set
-#   DIR_RAWDATA='raw_data'
-#   DIR_LEFTCAM_STACKZERO = 'Stack_0_Channel_0'
-#   DIR_RIGHTCAM_STACKZERO = 'Stack_0_Channel_0'
-#   DIR_LEFTCAM_STACKONE = 'Stack_1_Channel_0'
-#   DIR_RIGHTCAM_STACKONE = 'Stack_1_Channel_0'
-# meaning that stacks #0 of both left and right cameras are stored into the
-# same directory 'raw_data/Stack_0_Channel_0'
-#
-# File names for the left camera acquisition are then built with
-#   'PATH_EMBRYO'/'DIR_RAWDATA'/'DIR_TO_LEFTCAM_STACKZERO'/'acquisition_leftcam_image_prefix'+'TIME'
-#   'PATH_EMBRYO'/'DIR_RAWDATA'/'DIR_TO_LEFTCAM_STACKONE'/'acquisition_leftcam_image_prefix'+'TIME'
-# where 'TIME' is a 3-digit number (left-filled with 0's). The same for the right camera
-# acquisition files. Default values are
-#
-# acquisition_leftcam_image_prefix = 'Cam_Left_00'
-# acquisition_rightcam_image_prefix = 'Cam_Right_00'
-#
+## ##### explanation #####
+##
+## raw data file names
+##
+## allows to specify prefix name of the raw data
+## may be useful when several camera acquisitions are stored into
+## the same directory. Eg, if one has set
+##   DIR_RAWDATA='raw_data'
+##   DIR_LEFTCAM_STACKZERO = 'Stack_0_Channel_0'
+##   DIR_RIGHTCAM_STACKZERO = 'Stack_0_Channel_0'
+##   DIR_LEFTCAM_STACKONE = 'Stack_1_Channel_0'
+##   DIR_RIGHTCAM_STACKONE = 'Stack_1_Channel_0'
+## meaning that stacks #0 of both left and right cameras are stored into the
+## same directory 'raw_data/Stack_0_Channel_0'
+##
+## File names for the left camera acquisition are then built with
+##   'PATH_EMBRYO'/'DIR_RAWDATA'/'DIR_TO_LEFTCAM_STACKZERO'/'acquisition_leftcam_image_prefix'+'TIME'
+##   'PATH_EMBRYO'/'DIR_RAWDATA'/'DIR_TO_LEFTCAM_STACKONE'/'acquisition_leftcam_image_prefix'+'TIME'
+## where 'TIME' is a 3-digit number (left-filled with 0's). The same for the right camera
+## acquisition files. Default values are
+##
+## acquisition_leftcam_image_prefix = 'Cam_Left_00'
+## acquisition_rightcam_image_prefix = 'Cam_Right_00'
+##
 
 
 

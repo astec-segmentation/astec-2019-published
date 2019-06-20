@@ -156,21 +156,17 @@ class Experiment(object):
                 self.embryo_path = parameters.PATH_EMBRYO
             else:
                 self.embryo_path = os.getcwd()
+        else:
+            self.embryo_path = os.getcwd()
 
         if hasattr(parameters, 'EN'):
             if parameters.EN is not None:
                 self.embryoName = parameters.EN
             else:
-                if hasattr(parameters, 'PATH_EMBRYO'):
-                    embryo_path = parameters.PATH_EMBRYO
-                else:
-                    embryo_path = os.getcwd()
+                embryo_path = self.embryo_path
                 self.embryoName = embryo_path.split(os.path.sep)[-1]
         else:
-            if hasattr(parameters, 'PATH_EMBRYO'):
-                embryo_path = parameters.PATH_EMBRYO
-            else:
-                embryo_path = os.getcwd()
+            embryo_path = self.embryo_path
             self.embryoName = embryo_path.split(os.path.sep)[-1]
 
         if hasattr(parameters, 'begin'):

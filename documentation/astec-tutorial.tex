@@ -1,17 +1,149 @@
+\chapter{Tutorial}
+\label{chap:tutorial}
 
 \section*{Before starting}
 
-It is advised to add to your \texttt{PATH} environment variable the path to the astec package. So, Astec commands can be launched without specifying the complete path to the command.
+It is advised to add to your \texttt{PATH} environment variable 
+the paths to both the python and the C executable commands (the latter
+is important in case of non-standard installation). So, Astec commands can be launched without specifying the complete path to the command.
 
 It can be done in a terminal (and will be valid only for this terminal)
 \begin{code}{0.8}
-\$ export PATH=\${PATH}:/path/to/astec-package
+  \$ export PATH=\${PATH}:/path/to/astec/src \\
+  \$ export PATH=\${PATH}:/path/to/astec/src/ASTEC/CommunFunctions/cpp/vt/build/bin
 \end{code}
 or by modifying a setup file (e.g. \texttt{bashrc}, \texttt{.profile}, \ldots).
 
 
 
 
+
+\section{Tutorial data}
+
+The directory \texttt{/path/to/astec/tutorial/tuto-astec1/}, also denoted by
+\texttt{path/to/experiment/} or \texttt{<EXPERIMENT>}, contains
+the \texttt{RAWDATA/} and \texttt{parameters/} sub-directories and a
+\texttt{README} file
+
+\mbox{}
+\dirtree{%
+.1 path/to/experiment/.
+.2 RAWDATA/.
+.2 parameters/.
+.2 README.
+}
+\mbox{}
+
+The \texttt{RAWDATA/} contains 21 time points (indexed from 0 to 20)
+of subsampled (for file size
+consideration) raw data from a 3D+t movie acquired by a MuViSPIM microscope.
+
+\mbox{}
+\dirtree{%
+.1 RAWDATA/.
+.2 LC/.
+.3 Stack0000/.
+.4 Time000000\_00.mha.gz.
+.4 {\ldots}.
+.4 Time000020\_00.mha.gz.
+.3 Stack0001/.
+.4 Time000000\_00.mha.gz.
+.4 {\ldots}.
+.4 Time000020\_00.mha.gz.
+.2 RC/.
+.3 Stack0000/.
+.4 Time000000\_00.mha.gz.
+.4 {\ldots}.
+.4 Time000020\_00.mha.gz.
+.3 Stack0001/.
+.4 Time000000\_00.mha.gz.
+.4 {\ldots}.
+.4 Time000020\_00.mha.gz.
+}
+\mbox{}
+
+where \texttt{LC/} and \texttt{LC/} stand respectively for the left
+and the right cameras.
+
+
+\section{Fusion}
+\label{sec:tutorial:fusion}
+
+We assume that we are located in the directory
+\texttt{/path/to/astec/tutorial/tuto-astec1/}. Running the fusion is
+done with
+\begin{code}{0.8}
+  \$ 1-fuse.py -p parameters/1-fuse-tutorial-parameters.py
+\end{code}
+\texttt{1-fuse-tutorial-parameters.py} being the parameter file
+describing the experiment (figure \ref{fig:tutorial:parameter:fusion}).
+
+\begin{figure}
+\begin{framed}
+\begin{verbatim}
+     1	PATH_EMBRYO = '.'
+     2	
+     3	EN = '2019-Tutorial100'
+     4	
+     5	begin = 0
+     6	end = 20
+     7	
+     8	acquisition_orientation = 'right'
+     9	acquisition_mirrors = False
+    10	acquisition_resolution = (1., 1., 1.)
+    11	
+    12	target_resolution = 1.0\end{verbatim}
+\end{framed}
+\caption{\label{fig:tutorial:parameter:fusion} Tutorial parameter file for the fusion step.}
+\end{figure}
+
+\begin{itemize}
+  \item the variable \texttt{PATH\_EMBRYO} is the path to the directory where
+    the directory \texttt{RAWDATA/} is located. It can be either relative (as in the
+    above example) or
+    global (it could have been \texttt{/path/to/astec/tutorial/tuto-astec1/}).
+  \item the variable \texttt{EN} is the prefix after which the result fusion images
+    will be named. 
+  \item the variables \texttt{begin} and \texttt{end} indicate respectively the
+    first and the last index of the input time points to be processed.
+  \item the variables \texttt{acquisition\_orientation} and \texttt{acquisition\_mirrors} are parameters
+    describing the acquisition geometry.
+  \item the variable \texttt{acquisition\_resolution} is the voxel size (along the 3
+    dimensions X, Y and Z).
+  \item the variable \texttt{target\_resolution} is the desired isotropic (the
+    same along the 3 dimensions) voxel size for the result fusion images.
+\end{itemize}
+
+After processing, a \texttt{FUSE/} directory has been created
+
+\mbox{}
+\dirtree{%
+.1 path/to/sample/.
+.2 FUSE/.
+.2 RAWDATA/.
+.2 parameters/.
+.2 README.
+}
+\mbox{}
+
+The \texttt{FUSE/} directory contains 
+\mbox{}
+\dirtree{%
+.1 FUSE/.
+.2 FUSE\_RELEASE/.
+.3 2019-Tutorial100\_fuse\_t000.inr.
+.3 {\ldots}.
+.3 2019-Tutorial100\_fuse\_t020.inr.
+.3 LOGS/.
+}
+\mbox{}
+
+The fused images are named after \texttt{<EN>} (where \texttt{<XXX>}
+denotes the value of the variable \texttt{XXX}) and indexed from
+\texttt{<begin>} to \texttt{<end>} (as the input data). The directory \texttt{LOGS/} contains
+a copy of the parameter file (stamped with date and hour) as well as a
+log file (also stamped with date and hour) reporting information about
+the processing.
 
 
 

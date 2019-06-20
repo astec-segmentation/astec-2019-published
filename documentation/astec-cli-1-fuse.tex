@@ -1,0 +1,521 @@
+\section{\texttt{1-fuse.py}}
+\label{sec:cli:fuse}
+
+The fusion is made of the following steps.
+
+\begin{enumerate}
+\itemsep -1ex
+\item \label{it:fusion:slit:line} Optionally, a slit line correction. Some Y lines may appear brighter in the acquisition and causes artifacts in the reconstructed (i.e. fused) image. By default, it is not done.
+
+\item a change of resolution in the X and Y directions only (Z remains unchanged). It allows to decrease the data volume (and then the computational cost) if the new pixel size (set by \verb|target_resolution|) is larger than the acquisition one.
+
+\item \label{it:fusion:crop:1} Optionally, a crop of the resampled acquisitions. It allows to decrease the volume of data, hence the computational cost. The crop is based on the analysis of a MIP view (in the Z direction) of  the volume, and thus is sensitive to hyper-intensities if any. By default, it is done.
+
+\item Optionally, a mirroring of the 'right' image. It depends on the value of  \verb|raw_mirrors| variable.
+
+\item \label{it:fusion:registration} Linear registration of the 3 last images on the first one (considered as the reference). The reference image is resampled again, to get an isotropic voxel (whose size is given by \verb|target_resolution|), i.e. the voxel size is the same along the 3 directions: X, Y, Z.
+
+\item Linear combination of images, weighted by an ad-hoc function.
+
+\item  \label{it:fusion:crop:2} Optionally, a crop of the fused image, still based on the analysis of a MIP view (in the Z direction). By default, it is done.
+\end{enumerate}
+
+
+
+
+\subsection{\texttt{1-fuse.py} options}
+
+The following options are available:
+\begin{description}
+  \itemsep -1ex
+\item[\texttt{-h}] prints a help message
+\item[\texttt{-p \underline{file}}] indicates the parameter file to be parsed
+\item[\texttt{-e \underline{path}}] indicates the
+  \texttt{\underline{path}} to the directory where the
+  \texttt{RAWDATA/} directory is located
+\item[\texttt{-k}] allows to keep the temporary files
+\item[\texttt{-f}] forces execution, even if (temporary) result files
+  are already existing
+\item[\texttt{-v}] increases verboseness (both at console and in the
+  log file)
+\item[\texttt{-nv}] no verboseness
+\item[\texttt{-d}]  increases debug information (in the
+  log file)
+\item[\texttt{-nd}] no debug information
+\end{description}
+
+
+\subsection{Important parameters in the parameter file}
+\label{sec:cli:fuse:important:parameters}
+
+A simple parameter file for fusion is described in the tutorial
+section \ref{sec:tutorial:fusion}. A more comprehensive parameter file
+example is provided in the \texttt{parameter-file-examples/} directory.
+
+Indicating the right values of the
+acquisition parameters is crucial; these parameters are
+\begin{itemize}
+\itemsep -1ex
+\item \texttt{raw\_ori} is a parameter describing the acquisition
+  orientation of the acquisition of the second pair of images. Its value can be either \texttt{'left'} (orientation of
+  $270 \degree$) or \texttt{'right'} (orientation of
+  $90 \degree$).
+\item \texttt{raw\_mirrors} is a parameter indicating whether the
+  right camera images have to be mirrored or not. Its value is either
+  \texttt{False} or \texttt{True}.
+\item \texttt{raw\_resolution} is the voxel size (along the 3
+    dimensions X, Y and Z) of the acquired images.
+\item \texttt{target\_resolution} is the desired isotropic (the
+    same along the 3 dimensions) voxel size for the result fusion
+    images.
+\item \texttt{begin} gives the index of the first time point to be
+  processed.
+\item \texttt{end} gives the index of the last time point to be processed.
+\end{itemize}
+
+
+When one may not be sure of the \texttt{raw\_ori} and
+\texttt{raw\_mirrors} right values, it is advised to perform the
+fusion on only one time point (by indicating the same index for both
+\texttt{begin}  and \texttt{end}), with the four possibilities for the
+variable couple (\texttt{raw\_ori}, \texttt{raw\_mirrors}), i.e.
+(\texttt{'left'}, \texttt{False}),
+(\texttt{'left'}, \texttt{True}),
+(\texttt{'right'}, \texttt{False}), and
+(\texttt{'right'}, \texttt{True}).
+It comes to write four parameter files that differ only for the
+parameters \texttt{raw\_ori}, \texttt{raw\_mirrors}, and
+\texttt{EXP\_FUSE}  (to store the fusion result in different
+directories, see section \ref{sec:cli:fuse:output:data}).
+For these first experiments, it is also advised to set
+\texttt{target\_resolution} to a large value, in order to speed up the
+calculations.
+
+
+
+\subsection{Input data}
+\label{sec:cli:fuse:input:data}
+
+Input data (acquired images from the MuViSPIM microscope) are assumed
+to be organized in a separate \texttt{RAWDATA/} directory in the 
+\texttt{/path/to/experiment/} directory as depicted below. 
+\begin{itemize}
+  \itemsep -1ex
+\item \texttt{RAWDATA/LC/Stack000} contains the images acquired at the
+  first angulation by the left camera.
+\item \texttt{RAWDATA/LC/Stack001} contains the images acquired at the
+  second angulation by the left camera.
+\item \texttt{RAWDATA/RC/Stack000} contains the images acquired at the
+  first angulation by the right camera.
+\item \texttt{RAWDATA/RC/Stack001} contains the images acquired at the
+  second angulation by the right camera.
+\end{itemize}
+
+\mbox{}
+\dirtree{%
+.1 /path/to/experiment/.
+.2 RAWDATA/.
+.3 LC/.
+.4 Stack0000/.
+.5 Time000xxx\_00.zip.
+.5 {\ldots}.
+.5 Time000xxx\_00.zip.
+.4 Stack0001/.
+.5 Time000xxx\_00.zip.
+.5 {\ldots}.
+.5 Time000xxx\_00.zip.
+.3 RC/.
+.4 Stack0000/.
+.5 Time000xxx\_00.zip.
+.5 {\ldots}.
+.5 Time000xxx\_00.zip.
+.4 Stack0001/.
+.5 Time000xxx\_00.zip.
+.5 {\ldots}.
+.5 Time000xxx\_00.zip.
+.2 \ldots.
+}
+\mbox{}
+
+where \texttt{xxx} denotes a three digit number (e.g. $000$, $001$,
+...) denoting the time point of each acquisition. The range of time
+points to be fused are given by the variables \texttt{begin} and
+\texttt{end}, while the path \texttt{/path/to/experiment/} has to be
+assigned to the variable \texttt{PATH\_EMBRYO} 
+
+Hence a parameter file containing
+\begin{verbatim}
+PATH_EMBRYO = /path/to/experiment/
+begin = 0
+end = 10
+\end{verbatim}
+indicates that time points in $[0,10]$ of the \texttt{RAWDATA/}
+subdirectory of  \texttt{/path/to/experiment/} have to be fused.
+
+\subsubsection{Input data directory names}
+
+However, directories may be named differently. The variables
+\texttt{DIR\_RAWDATA}, \texttt{DIR\_LEFTCAM\_STACKZERO},
+\texttt{DIR\_RIGHTCAM\_STACKZERO}, \texttt{DIR\_LEFTCAM\_STACKONE},
+and \texttt{DIR\_RIGHTCAM\_STACKONE} allow a finer control of the
+directory names. The images acquired at the first angulation by the
+left and the right cameras are searched in the directories
+\begin{verbatim}
+<PATH_EMBRYO>/<DIR_RAWDATA>/<DIR_LEFTCAM_STACKZERO>
+<PATH_EMBRYO>/<DIR_RAWDATA>/<DIR_RIGHTCAM_STACKZERO>
+\end{verbatim}
+while the images acquired at the second angulation by the
+left and the right cameras are searched in the directories
+\begin{verbatim}
+<PATH_EMBRYO>/<DIR_RAWDATA>/<DIR_LEFTCAM_STACKONE>
+<PATH_EMBRYO>/<DIR_RAWDATA>/<DIR_RIGHTCAM_STACKONE>
+\end{verbatim}
+where \texttt{<XXX>} denotes the value of the variable \texttt{XXX}.
+Then, to parse the following data architecture
+
+\mbox{}
+\dirtree{%
+.1 /path/to/experiment/.
+.2 my\_raw\_data/.
+.3 LeftCamera/.
+.4 FirstStack/.
+.5 {\ldots}.
+.4 SecondStack/.
+.5 {\ldots}.
+.3 RightCamera/.
+.4 FirstStack/.
+.5 {\ldots}.
+.4 SecondStack/.
+.5 {\ldots}.
+.2 \ldots.
+}
+\mbox{}
+
+one has to add the following lines in the parameter file
+\begin{verbatim}
+DIR_RAWDATA = 'my_raw_data'
+DIR_LEFTCAM_STACKZERO = 'LeftCamera/FirstStack'
+DIR_RIGHTCAM_STACKZERO = 'RightCamera/FirstStack'
+DIR_LEFTCAM_STACKONE = 'LeftCamera/SecondStack'
+DIR_RIGHTCAM_STACKONE = 'RightCamera/SecondStack'
+\end{verbatim}
+
+It has to be noted that, when the stacks of a given time point are in
+different directories, image file names are tried to be guessed from
+the directories parsing. It has to be pointed out that indexes have to
+be encoded with a 3-digit integer with 0 padding (i.e. $000$, $001$,
+\ldots) and that has to be the only variation in the file names
+(within each directory).
+
+\subsubsection{Input data image file names}
+
+Images acquired from the left and the right cameras may be stored in
+the same directory, but obviously with different names as in 
+
+\mbox{}
+\dirtree{%
+.1 /path/to/experiment/.
+.2 RAWDATA/.
+.3 stack\_0\_channel\_0.
+.4 Cam\_Left\_00xxx.zip.
+.4  \ldots .
+.4 Cam\_Right\_00xxx.zip.
+.4 \ldots .
+.3 stack\_1\_channel\_0.
+.4 Cam\_Left\_00xxx.zip.
+.4  \ldots .
+.4 Cam\_Right\_00xxx.zip.
+.4 \ldots .
+}
+\mbox{}
+
+The parameter file has then to contain the following lines to indicate
+the directory names.
+\begin{verbatim}
+DIR_LEFTCAM_STACKZERO = 'stack_0_channel_0'
+DIR_RIGHTCAM_STACKZERO = 'stack_0_channel_0'
+DIR_LEFTCAM_STACKONE = 'stack_1_channel_0'
+DIR_RIGHTCAM_STACKONE = 'stack_1_channel_0'
+\end{verbatim}
+
+In addition, to distinguish the images acquired by the left camera to
+those acquired by the right one, one has to give the image name
+prefixes, i.e. the common part of the image file names before the
+3-digit number that indicates the time point.
+This is the purpose of the  variables
+\verb|acquisition_leftcam_image_prefix| and 
+\verb|acquisition_rightcam_image_prefix|.
+The parameter file has then to contain the following lines not only to indicate
+the directory names but also the image file name prefixes.
+
+\begin{verbatim}
+DIR_LEFTCAM_STACKZERO = 'stack_0_channel_0'
+DIR_RIGHTCAM_STACKZERO = 'stack_0_channel_0'
+DIR_LEFTCAM_STACKONE = 'stack_1_channel_0'
+DIR_RIGHTCAM_STACKONE = 'stack_1_channel_0'
+acquisition_leftcam_image_prefix = 'Cam_Left_00'
+acquisition_rightcam_image_prefix = 'Cam_Right_00'
+\end{verbatim}
+
+\subsubsection{Multichannel acquisition}
+
+In case of multichannel acquisition, the fusion is computed for the
+first channel, and the computed parameters (e.g. transformations,
+etc.) are also used for the other channels. 
+
+For a second channel, 
+the images acquired at the first angulation by the
+left and the right cameras are searched in the directories
+\begin{verbatim}
+<PATH_EMBRYO>/<DIR_RAWDATA>/<DIR_LEFTCAM_STACKZERO_CHANNEL_2>
+<PATH_EMBRYO>/<DIR_RAWDATA>/<DIR_RIGHTCAM_STACKZERO_CHANNEL_2>
+\end{verbatim}
+while the images acquired at the second angulation by the
+left and the right cameras are searched in the directories
+\begin{verbatim}
+<PATH_EMBRYO>/<DIR_RAWDATA>/<DIR_LEFTCAM_STACKONE_CHANNEL_2>
+<PATH_EMBRYO>/<DIR_RAWDATA>/<DIR_RIGHTCAM_STACKONE_CHANNEL_2>
+\end{verbatim}
+
+For a third channel, 
+the images acquired at the first angulation by the
+left and the right cameras are searched in the directories
+\begin{verbatim}
+<PATH_EMBRYO>/<DIR_RAWDATA>/<DIR_LEFTCAM_STACKZERO_CHANNEL_3>
+<PATH_EMBRYO>/<DIR_RAWDATA>/<DIR_RIGHTCAM_STACKZERO_CHANNEL_3>
+\end{verbatim}
+while the images acquired at the second angulation by the
+left and the right cameras are searched in the directories
+\begin{verbatim}
+<PATH_EMBRYO>/<DIR_RAWDATA>/<DIR_LEFTCAM_STACKONE_CHANNEL_3>
+<PATH_EMBRYO>/<DIR_RAWDATA>/<DIR_RIGHTCAM_STACKONE_CHANNEL_3>
+\end{verbatim}
+
+
+
+\subsection{Output data}
+\label{sec:cli:fuse:output:data}
+
+The variable \texttt{target\_resolution} allows to set the desired isotropic (the
+same along the 3 dimensions) voxel size for the result fusion
+images.
+
+\subsubsection{Output data directory names}
+
+The resulting fused images are stored in sub-directories
+\texttt{FUSE/FUSE\_XXX} under the \texttt{FUSE/} directory
+
+\mbox{}
+\dirtree{%
+.1 /path/to/experiment/.
+.2 RAWDATA/.
+.3 \ldots.
+.2 FUSE/.
+.3 FUSE\_RELEASE/.
+.4 \ldots.
+.3 FUSE\_XXX/.
+.4 \ldots.
+}
+\mbox{}
+
+'\texttt{XXX}' is given by the variable \texttt{EXP\_FUSE} (its
+default value is '\texttt{RELEASE}'). Hence, the line
+\begin{verbatim}
+EXP_FUSE = 'TEST'
+\end{verbatim}
+in the parameter file will create the directory
+\texttt{FUSE/FUSE\_TEST/} in which the fused images are stored. For
+instance, when testing for the values of the variable couple
+(\texttt{raw\_ori}, \texttt{raw\_mirrors}), a first parameter file may
+contain
+\begin{verbatim}
+raw_ori = 'left'
+raw_mirrors = False
+begin = 1
+end = 1
+EXP_FUSE=TEST-LEFT-FALSE
+\end{verbatim}
+a second parameter file may
+contain
+\begin{verbatim}
+raw_ori = 'left'
+raw_mirrors = True
+begin = 1
+end = 1
+EXP_FUSE=TEST-LEFT-TRUE
+\end{verbatim}
+etc. The resulting fused images will then be in different directories
+
+\mbox{}
+\dirtree{%
+.1 /path/to/experiment/.
+.2 RAWDATA/.
+.3 \ldots.
+.2 FUSE/.
+.3 FUSE\_TEST-LEFT-FALSE/.
+.4 \ldots.
+.3 FUSE\_TEST-LEFT-TRUE/.
+.4 \ldots.
+.3 \ldots.
+}
+\mbox{}
+
+This will ease their visual inspection to decide which values of the variable couple
+(\texttt{raw\_ori}, \texttt{raw\_mirrors}) to use for the fusion.
+
+\subsubsection{Output data file names}
+
+Fused image files are named after the variable \texttt{EN}:
+\texttt{<EN>\_fuse\_txxx.inr} where \texttt{xxx} is the time point
+index encoded by a 3-digit integer (with 0 padding).
+
+
+\subsubsection{Multichannel acquisition}
+
+Variables \texttt{EXP\_FUSE\_CHANNEL\_2} and
+\texttt{EXP\_FUSE\_CHANNEL\_3} allows to set the directory names for
+the resulting fused images of the other channels.
+
+\subsection{Tuning fusion parameters}
+
+% \subsubsection{Step \ref{it:fusion:slit:line}: slit line correction}
+
+\subsubsection{Step \ref{it:fusion:crop:1}: raw data cropping}
+\label{sec:cli:fuse:raw:data:cropping}
+
+For computational cost purposes, raw data (images acquired by the MuViSPIM microscope) are cropped (only in X and Y dimensions) before co-registration. A threshold is computed with Otsu's method \cite{otsu:tsmc:1979} on the maximum intensity projection (MIP) image. The cropping parameters are computed to keep the above-threshold points in the MIP image, plus some extra margins. Hyper-intense areas may biased the threshold computation, hence the cropping.
+
+To desactivate this cropping, the line
+\begin{verbatim}
+raw_crop = False
+\end{verbatim}
+has to be added in the parameter file.
+
+\subsubsection{Step \ref{it:fusion:registration}: linear registration}
+\label{sec:cli:fuse:linear:registration}
+
+To decrease the computational cost, images are normalized and cast on one byte before registration. While it generally does not degrade the registration quality, it may induce troubles when hyper-intensities areas are present in the image. In such a case, the useful information may then be summarized in only a few intensity values.
+
+Intensity normalization in registration can be deactivated by adding the following line in the parameter file
+\begin{verbatim}
+fusion_registration_normalization = False
+\end{verbatim}
+
+To verify whether a good quality registration can be conducted, the searched transformation type can be changed for a simpler one than affine. 
+Adding the following line in the parameter file.
+\begin{verbatim}
+fusion_registration_transformation_type = translation
+\end{verbatim}
+will search for a translation which is supposed to be sufficient, according that only translations relates the 4 acquisitions of the MuViSPIM microscope (in a perfect setting). If the search for an affine transformation (the default behavior) failed (the fusion looks poor) while the search for a translation is successful (the fusion looks good), a two-steps registration may help to refine the found translation by a subsequent affine transformation as explained below.
+
+Hyper-intensities areas may also bias the threshold calculation used for the automatic crop (step \ref{it:fusion:crop:1} of fusion). In such cases, the iterative registration method may find a local minimum that is not the desired one, because the relative positions of the two images to be co-registered are too far apart. To circumvent such a behavior, a two-steps registration can be done. It consists on a first pre-registration with a transformation with fewer degrees of freedom (i.e. a 3D translation). 
+
+This pre-registration can be activated by adding the following line in the parameter file.
+\begin{verbatim}
+fusion_preregistration_compute_registration = True
+\end{verbatim}
+It may be also preferable to  deactivate the image normalization for both registration steps with
+\begin{verbatim}
+fusion_preregistration_normalization = False
+fusion_registration_normalization = False
+\end{verbatim}
+
+
+
+\subsubsection{Step \ref{it:fusion:crop:2}: fused data cropping}
+\label{sec:cli:fuse:fused:data:cropping}
+
+To save disk storage, fused images are cropped at the end of the fusion stage. To desactivate this cropping, the line
+\begin{verbatim}
+fusion_crop = False
+\end{verbatim}
+has to be added in the parameter file.
+
+\subsection{Troubleshooting}
+
+\begin{itemize}
+\item The fused images are obviously wrong.
+  \begin{enumerate}
+  \item Are the values of the variable couple (\texttt{raw\_ori}, \texttt{raw\_mirrors}) the right ones? Conduct experiments as suggested in section \ref{sec:cli:fuse:important:parameters}  (see also section \ref{sec:cli:fuse:output:data}) to get the right values.
+  \item The registration may have failed.
+    \begin{enumerate}
+    \item Deactivate the 1-byte normalization (see section \ref{sec:cli:fuse:linear:registration}).
+    \item Try to register with a simpler transformation type (i.e. translation) and/or with a two-steps registration (see section \ref{sec:cli:fuse:linear:registration}).
+    \end{enumerate}
+  \end{enumerate}
+\item The imaged sample is cropped by the image border in the fused image.
+  \begin{enumerate}
+  \item Check whether the imaged sample was not already cropped in the raw data.
+  \item The automated cropping may have failed. It is more likely to happen when cropping the raw data, so deactivate it (see section \ref{sec:cli:fuse:raw:data:cropping}). If it still happens, try to deactivate also the fused image cropping   (see section \ref{sec:cli:fuse:fused:data:cropping}).
+  \end{enumerate}
+\end{itemize}
+
+\subsection{Parameter list}
+
+Please also refer to the file
+\texttt{parameter-file-examples/1-fuse-parameters.py}
+
+\begin{itemize}
+\itemsep -1ex
+\item \texttt{DIR\_LEFTCAM\_STACKONE} see section \ref{sec:cli:fuse:input:data}
+\item \texttt{DIR\_LEFTCAM\_STACKONE\_CHANNEL\_2} see section \ref{sec:cli:fuse:input:data}
+\item \texttt{DIR\_LEFTCAM\_STACKONE\_CHANNEL\_3} see section \ref{sec:cli:fuse:input:data}
+\item \texttt{DIR\_LEFTCAM\_STACKZERO} see section \ref{sec:cli:fuse:input:data}
+\item \texttt{DIR\_LEFTCAM\_STACKZERO\_CHANNEL\_2} see section \ref{sec:cli:fuse:input:data}
+\item \texttt{DIR\_LEFTCAM\_STACKZERO\_CHANNEL\_3} see section \ref{sec:cli:fuse:input:data}
+\item \texttt{DIR\_RAWDATA} see section \ref{sec:cli:fuse:input:data}
+\item \texttt{DIR\_RAWDATA\_CHANNEL\_2} see section \ref{sec:cli:fuse:input:data}
+\item \texttt{DIR\_RAWDATA\_CHANNEL\_3} see section \ref{sec:cli:fuse:input:data}
+\item \texttt{DIR\_RIGHTCAM\_STACKONE} see section \ref{sec:cli:fuse:input:data}
+\item \texttt{DIR\_RIGHTCAM\_STACKONE\_CHANNEL\_2} see section \ref{sec:cli:fuse:input:data}
+\item \texttt{DIR\_RIGHTCAM\_STACKONE\_CHANNEL\_3} see section \ref{sec:cli:fuse:input:data}
+\item \texttt{DIR\_RIGHTCAM\_STACKZERO} see section \ref{sec:cli:fuse:input:data}
+\item \texttt{DIR\_RIGHTCAM\_STACKZERO\_CHANNEL\_2} see section \ref{sec:cli:fuse:input:data}
+\item \texttt{DIR\_RIGHTCAM\_STACKZERO\_CHANNEL\_3} see section \ref{sec:cli:fuse:input:data}
+\item \texttt{EN} see section \ref{sec:cli:fuse:output:data}
+\item \texttt{EXP\_FUSE} see section \ref{sec:cli:fuse:output:data}
+\item \texttt{EXP\_FUSE\_CHANNEL\_2} see section \ref{sec:cli:fuse:output:data}
+\item \texttt{EXP\_FUSE\_CHANNEL\_3} see section \ref{sec:cli:fuse:output:data}
+\item \texttt{PATH\_EMBRYO} see section \ref{sec:cli:fuse:input:data}
+\item \texttt{RESULT\_IMAGE\_SUFFIX\_FUSE}
+\item \texttt{acquisition\_leftcam\_image\_prefix}  see section \ref{sec:cli:fuse:input:data}
+\item \texttt{acquisition\_mirrors} same as \texttt{raw\_mirrors}
+\item \texttt{acquisition\_orientation} same as \texttt{raw\_ori}
+\item \texttt{acquisition\_resolution} same as \texttt{raw\_resolution}
+\item \texttt{acquisition\_rightcam\_image\_prefix}  see section \ref{sec:cli:fuse:input:data}
+\item \texttt{acquisition\_slit\_line\_correction}
+\item \texttt{begin} see section \ref{sec:cli:fuse:important:parameters}
+\item \texttt{default\_image\_suffix}
+\item \texttt{delta}
+\item \texttt{end} see section \ref{sec:cli:fuse:important:parameters}
+\item \texttt{fusion\_crop} see section \ref{sec:cli:fuse:fused:data:cropping}
+\item \texttt{fusion\_margin\_x\_0}
+\item \texttt{fusion\_margin\_x\_1}
+\item \texttt{fusion\_margin\_y\_0}
+\item \texttt{fusion\_margin\_y\_1}
+\item \texttt{fusion\_preregistration\_compute\_registration} see section \ref{sec:cli:fuse:linear:registration}
+\item \texttt{fusion\_preregistration\_lts\_fraction}
+\item \texttt{fusion\_preregistration\_normalization} see section \ref{sec:cli:fuse:linear:registration}
+\item \texttt{fusion\_preregistration\_pyramid\_highest\_level}
+\item \texttt{fusion\_preregistration\_pyramid\_lowest\_level}
+\item \texttt{fusion\_preregistration\_transformation\_estimation\_type}
+\item \texttt{fusion\_preregistration\_transformation\_type}
+\item \texttt{fusion\_registration\_compute\_registration}
+\item \texttt{fusion\_registration\_lts\_fraction}
+\item \texttt{fusion\_registration\_normalization} see section \ref{sec:cli:fuse:linear:registration}
+\item \texttt{fusion\_registration\_pyramid\_highest\_level}
+\item \texttt{fusion\_registration\_pyramid\_lowest\_level}
+\item \texttt{fusion\_registration\_transformation\_estimation\_type}
+\item \texttt{fusion\_registration\_transformation\_type} see section \ref{sec:cli:fuse:linear:registration}
+\item \texttt{raw\_crop} see section \ref{sec:cli:fuse:raw:data:cropping}
+\item \texttt{raw\_delay}
+\item \texttt{raw\_margin\_x\_0}
+\item \texttt{raw\_margin\_x\_1}
+\item \texttt{raw\_margin\_y\_0}
+\item \texttt{raw\_margin\_y\_1}
+\item \texttt{raw\_mirrors} see section \ref{sec:cli:fuse:important:parameters}
+\item \texttt{raw\_ori} see section \ref{sec:cli:fuse:important:parameters}
+\item \texttt{raw\_resolution} see section \ref{sec:cli:fuse:important:parameters}
+\item \texttt{result\_image\_suffix}
+\item \texttt{target\_resolution} see section \ref{sec:cli:fuse:output:data}
+\end{itemize}

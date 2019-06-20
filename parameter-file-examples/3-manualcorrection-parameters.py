@@ -94,6 +94,8 @@ begin = 0
 #
 ######################################################################
 
+
+
 # mars_begin = -1
 # mars_end = -1
 
@@ -105,18 +107,32 @@ begin = 0
 ## 'mars_begin' and 'mars_end' variables. Please note that
 ## a 'delta' (see above) step will take place between two processed time points.
 
+
+
 # mancor_input_seg_file=''
-                       # segmentation file to be manually corrected
-					   # If not provided, then looking for the output of MARS
 # mancor_output_seg_file=''
-mancor_mapping_file='' 
-                       # path to mapping file for manual correction of the 
-					   # mars segmentation. See above the syntax of this file.
-					   # - 1 line per label association
-					   # - background label has value 1
-					   # - the character '#' denotes commented lines 
-					   # See file "mapping.txt" in the astec project to get an
-					   # example
+
+## ##### explanation #####
+##
+## defines the input/ouput file names (to be used when correcting
+## other files than the 2-mars.py output file)
+## 
+## mancor_input_seg_file is the segmentation file to be corrected
+##   if not provided, then looking for the output of MARS
+## mancor_output_seg_file is the corrected segmentation file                    
+
+
+
+mancor_mapping_file=''
+
+## ##### explanation #####
+##
+## path to mapping file for manual correction of a 
+## segmentation (ie label) image. See above the syntax of this file.
+## - 1 line per label association
+## - background label has value 1
+## - the character '#' denotes commented lines 
+
 '''
 # EXAMPLE OF mancor_mapping_file CONTENT:
 # here the input label 8 will be mapped with new value 7, etc...
