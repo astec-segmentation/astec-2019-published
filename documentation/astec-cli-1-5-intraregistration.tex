@@ -1,0 +1,144 @@
+\section{\texttt{1.5-intraregistration.py}}
+\label{sec:cli:intraregistration}
+
+The sequence intra-registration procedure can be done either after the fusion step, or after the segmentation step. It aims at
+\begin{itemize}
+\itemsep -1ex
+\item compensating for the eventual motion of the imaged sample with respect to the microscope
+\item resampling the fusion and/or the segmentation images into a common frame/geometry, so they can better be compared, and
+\item building 2D+t images made of 2D sections from either the  fusion and/or the segmentation images, so that the quality of the fusion and/of the tracking step can be visually assessed.
+\end{itemize}
+
+The sequence intra-registration is made of the following steps.
+\begin{enumerate}
+\itemsep -1ex
+\item Co-registration of every couple of successive fused images.
+\item Composition of the co-registration transformations with respect to a reference fused image.
+\item Building a template image that will 
+\end{enumerate}
+
+
+
+
+
+
+Its results will be stored in the \verb|INTRAREG/INTRAREG_<EXP_INTRAREG>| subdirectory
+
+
+
+where \verb|<EXP>| is set by \verb|EXP_INTRAREG| from the parameter file. \verb|POST| and \verb|SEG| directories are created only if respectively segmentation and post-segmentation sequences are required to be resampled/reconstructed in the common frame.
+
+\dirtree{%
+.1 <EMBRYO>.
+.2 \ldots.
+.2 INTRAREG.
+.3 INTRAREG\_<EXP>.
+.4 CO-TRSFS.
+.4 FUSE.
+.4 LOGS.
+.4 MOVIES.
+.4 POST.
+.4 SEG.
+.4 TRSFS\_t<F>-<L>.
+.2 \ldots.
+}
+
+The intra-registration procedure is made of the following steps:
+\begin{enumerate}
+
+\item Co-registration of pairs of successive fused images (section \ref{sec:cli:intraregistration:coregistration}). This yields the transformations $T_{t+1 \leftarrow t}$. Fused images are located in \verb|<EMBRYO>/FUSE/FUSE_<EXP_FUSE>|: the parameter \verb|EXP_FUSE| is either set in the parameter file or is set at \verb|RELEASE|. This step may be long.
+
+\item Composition of transformations issued from the co-registration  step. This step computes the transformations $T_{ref \leftarrow t}$. towards a reference image \verb|ref| given by the parameter \verb|intra_registration_reference_index|.
+
+\item Computation of the \textit{template} image (section \ref{sec:cli:intraregistration:template}). This \textit{template} image dimension are computed so that the useful information of all resampled images fits into it. Useful information can be issued from either the fused sequence, the segmentation sequence or the post-segmentation sequence. It is indicated by the \verb|intra_registration_template_type| which value can be either \verb|'FUSION'|,  \verb|'SEGMENTATION'|, or \verb|'POST-SEGMENTATION'|. This step may be long.
+
+\item Resampling of either the fused or the segmentation images  (section \ref{sec:cli:intraregistration:resampling}). Note that changing the parameters for this step will not require to re-compute the first steps.
+
+\item Extraction of 2D+t images from the resampled sequences (section \ref{sec:cli:intraregistration:movies}). Note that changing the parameters for this step (i.e. requiring extra movies) will not require to re-compute the first steps, with an eventual exception for the resampling step.
+
+\end{enumerate}
+
+
+\subsubsection{Co-registration parameters}
+\label{sec:cli:intraregistration:coregistration}
+Default registration parameters for the co-registration are set by:
+\begin{verbatim}
+# intra_registration_compute_registration = True
+# intra_registration_transformation_type = 'rigid'
+# intra_registration_transformation_estimation_type = 'wlts'
+# intra_registration_lts_fraction = 0.55
+# intra_registration_pyramid_highest_level = 6
+# intra_registration_pyramid_lowest_level = 3
+# intra_registration_normalization = True
+\end{verbatim}
+Computed transformations are stored in \verb|INTRAREG/INTRAREG_<EXP>/CO-TRSFS|.
+It may be advised to set the pyramid lowest level value to some higher value to speed up the co-registrations (recall that all pairs of successive images will be co-registered, i.e.
+\begin{verbatim}
+intra_registration_pyramid_lowest_level = 4
+\end{verbatim}
+
+
+\subsubsection{Template building parameters}
+\label{sec:cli:intraregistration:template}
+
+\begin{verbatim}
+# intra_registration_reference_index = None
+# intra_registration_template_type = 'FUSION'
+# intra_registration_template_threshold = None
+# intra_registration_resolution = 0.6
+# intra_registration_margin = None
+\end{verbatim}
+
+The \verb|intra_registration_reference_index| allows to choose the reference image (the one which remains still, i.e. is only displaced by a translation), by default it is the first image image of the series (associated to \verb|begin|).
+
+Depending on \verb|intra_registration_template_type| (\verb|'FUSION'|, \verb|'SEGMENTATION'| or \verb|'POST-SEGMENTATION'|, the two latter assume obviously that the segmentation has been done), the \textit{template} image can be built either after the fusion or the segmentation images. If no threshold is given by \verb|intra_registration_template_threshold|, the built template will be large enough to include all the transformed fields of view (in this case, the template is the same whatever \verb|intra_registration_template_type| is). 
+
+If a threshold is given, the built template will be large enough to include all the transformed points above the threshold. E.g., the background is labeled with either '1' or '0' in segmentation images, then a threshold of '2' ensures that all the embryo cells will not be cut by the resampling stage.  In this case, adding an additional margin to the template could be a good idea for visualization purpose. Last but not least, using a larger resolution than the \verb|intra_registration_resolution| allows to decrease the resampled images volume (the default resolution i.e. voxel size, given by  \verb|target_resolution|, for the fusion step (see section \ref{sec:cli:fuse:basic:use}), is set to 0.3, while it is set to 0.6 here).
+
+Thus, building a \textit{template} image after the segmentation images can be done with
+\begin{verbatim}
+# intra_registration_reference_index = None
+intra_registration_template_type = "SEGMENTATION"
+intra_registration_template_threshold = 2
+# intra_registration_resolution = 0.6
+intra_registration_margin = 10
+\end{verbatim}
+
+Computed transformations from the \textit{template} image as well as the \textit{template} image itself are stored in \verb|INTRAREG/INTRAREG<EXP>/TRSFS_t<F>-<L>| where \verb|<F>| and \verb|L| are the first and the last index of the series (specified by \verb|begin| and \verb|end| from the parameter file).
+
+\subsubsection{Resampling fusion/segmentation images}
+\label{sec:cli:intraregistration:resampling}
+The resampled fusion and segmentation images will be stored respectively in \verb|INTRAREG/INTRAREG_<EXP>/FUSE|, \verb|INTRAREG/INTRAREG_<EXP>/SEG| and \verb|INTRAREG/INTRAREG_<EXP>/POST|. Resampling is done either if the following parameters are set to \verb|True| or if movies are requested to be computed.
+
+\begin{verbatim}
+# intra_registration_resample_fusion_images = True
+# intra_registration_resample_segmentation_images = False
+# intra_registration_resample_post_segmentation_images = False
+\end{verbatim}
+
+\subsubsection{2D+t movies}
+\label{sec:cli:intraregistration:movies}
+For either visual assessment or illustration purposes, 2D+t (i.e. 3D) images can be built from 2D sections extracted from the resampled temporal series. This is controlled by the following parameters:
+\begin{verbatim}
+# intra_registration_movie_fusion_images = True
+# intra_registration_movie_segmentation_images = False
+
+# intra_registration_xy_movie_fusion_images = [];
+# intra_registration_xz_movie_fusion_images = [];
+# intra_registration_yz_movie_fusion_images = [];
+
+# intra_registration_xy_movie_segmentation_images = [];
+# intra_registration_xz_movie_segmentation_images = [];
+# intra_registration_yz_movie_segmentation_images = [];
+
+# intra_registration_xy_movie_post_segmentation_images = [];
+# intra_registration_xz_movie_post_segmentation_images = [];
+# intra_registration_yz_movie_post_segmentation_images = [];
+\end{verbatim}
+
+If \verb|intra_registration_movie_fusion_images| is set to \verb|True|, a movie is made with the  XY-section located at the middle of each resampled fusion image (recall that, after resampling, all images have the same geometry). Additional XY-movies can be done by specifying the wanted Z values in \verb|intra_registration_xy_movie_fusion_images|. E.g.
+\begin{verbatim}
+intra_registration_xy_movie_fusion_images = [100, 200];
+\end{verbatim}
+will build two movies with XY-sections located respectively at Z values of 100 and 200. The same stands for the other orientation and for the resampled segmentation images.
+

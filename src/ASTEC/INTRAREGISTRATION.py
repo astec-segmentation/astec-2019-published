@@ -491,13 +491,14 @@ class IntraRegParameters(object):
         # however, when dealing with segmentation images as template, a little margin will be great
         # thus, define the default as 10 (if no specification from the user)
         #
-        if parameters.intra_registration_template_type.lower() == 'segmentation' \
+        if hasattr(parameters, 'intra_registration_template_type'):
+            if parameters.intra_registration_template_type.lower() == 'segmentation' \
                 or parameters.intra_registration_template_type.lower() == 'seg' \
                 or parameters.intra_registration_template_type.lower() == 'post-segmentation' \
                 or parameters.intra_registration_template_type.lower() == 'post_segmentation' \
                 or parameters.intra_registration_template_type.lower() == 'post':
-            if margin_is_updated is False:
-                parameters.intra_registration_margin = 10
+                if margin_is_updated is False:
+                    parameters.intra_registration_margin = 10
 
 
 ########################################################################################

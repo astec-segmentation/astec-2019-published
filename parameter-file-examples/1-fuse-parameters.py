@@ -7,6 +7,7 @@
 ############################################################
 
 
+
 # PATH_EMBRYO = ''
 
 ## ##### explanation #####
@@ -106,12 +107,11 @@ raw_resolution = (.17, .17, 1.)
 ##
 ## Paths to the raw data
 ##
-## allows to specify paths to the raw (eq acquisition) data
-## the 4 paths are built as follows
-## 'PATH_EMBRYO'/'DIR_RAWDATA'/'DIR_LEFTCAM_STACKZERO'
-## 'PATH_EMBRYO'/'DIR_RAWDATA'/'DIR_RIGHTCAM_STACKZERO'
-## 'PATH_EMBRYO'/'DIR_RAWDATA'/'DIR_LEFTCAM_STACKONE'
-## 'PATH_EMBRYO'/'DIR_RAWDATA/'DIR_RIGHTCAM_STACKONE'
+## allows to specify paths to the raw (eq acquisition) data ## the 4 paths are built as follows
+## <PATH_EMBRYO>/<DIR_RAWDATA>/<DIR_LEFTCAM_STACKZERO>
+## <PATH_EMBRYO>/<DIR_RAWDATA>/<DIR_RIGHTCAM_STACKZERO>
+## <PATH_EMBRYO>/<DIR_RAWDATA>/<DIR_LEFTCAM_STACKONE>
+## <PATH_EMBRYO>/<DIR_RAWDATA>/<DIR_RIGHTCAM_STACKONE>
 ##
 ## default values are
 ##
@@ -123,7 +123,7 @@ raw_resolution = (.17, .17, 1.)
 ##
 ## When temporary files are kept (option -k), LEFTCAM_STACKZERO, RIGHTCAM_STACKZERO
 ## LEFTCAM_STACKONE, and RIGHTCAM_STACKONE related files are respectively stored in
-## directories FUSE/'EXP_FUSE'/TEMP_XXX/ANGLE_[0,1,2,3]
+## directories FUSE/FUSE_<EXP_FUSE>/TEMP_XXX/ANGLE_[0,1,2,3]
 ## 
 ## multi-channel fusion
 ## --------------------
@@ -132,7 +132,7 @@ raw_resolution = (.17, .17, 1.)
 ##
 ## paths to the raw data (of the other channels) have also to be specified
 ## with the variables (X = 2 or 3) and the same path construction
-## eg: 'PATH_EMBRYO'/'DIR_RAWDATA_CHANNEL_X'/'DIR_LEFTCAM_STACKZERO_CHANNEL_X'
+## eg: <PATH_EMBRYO>/<DIR_RAWDATA_CHANNEL_X>/<DIR_LEFTCAM_STACKZERO_CHANNEL_X>
 ## DIR_RAWDATA_CHANNEL_X
 ## DIR_LEFTCAM_STACKZERO_CHANNEL_X
 ## DIR_RIGHTCAM_STACKZERO_CHANNEL_X
@@ -165,9 +165,9 @@ raw_resolution = (.17, .17, 1.)
 ## same directory 'raw_data/Stack_0_Channel_0'
 ##
 ## File names for the left camera acquisition are then built with
-##   'PATH_EMBRYO'/'DIR_RAWDATA'/'DIR_TO_LEFTCAM_STACKZERO'/'acquisition_leftcam_image_prefix'+'TIME'
-##   'PATH_EMBRYO'/'DIR_RAWDATA'/'DIR_TO_LEFTCAM_STACKONE'/'acquisition_leftcam_image_prefix'+'TIME'
-## where 'TIME' is a 3-digit number (left-filled with 0's). The same for the right camera
+##   <PATH_EMBRYO>/<DIR_RAWDATA>/<DIR_LEFTCAM_STACKZERO>/<acquisition_leftcam_image_prefix>+<TIME>
+##   <PATH_EMBRYO>/<DIR_RAWDATA>/<DIR_LEFTCAM_STACKONE>/<acquisition_leftcam_image_prefix>+<TIME>
+## where <TIME> is a 3-digit number (with 0 padding). The same for the right camera
 ## acquisition files. Default values are
 ##
 ## acquisition_leftcam_image_prefix = 'Cam_Left_00'
@@ -184,7 +184,7 @@ raw_resolution = (.17, .17, 1.)
 ##
 ## fusion directory names
 ##
-## Fusion results will be stored in 'PATH_EMBRYO'/FUSE/FUSE_'EXP_FUSE'
+## Fusion results will be stored in <PATH_EMBRYO>/FUSE/FUSE_<EXP_FUSE>
 ## default value is
 ## EXP_FUSE = 'RELEASE'
 ##
@@ -200,6 +200,7 @@ target_resolution = .3
 ## ##### explanation #####
 ##
 ## isotropic voxel size of the fusion result (fused image)
+##
 
 
 
@@ -243,7 +244,7 @@ target_resolution = .3
 ##    the crop is based on the analysis of a MIP view (in the Z direction) of
 ##    the volume
 ## 4. Optionally, a mirroring of the 'right' image
-##    depends of the 'raw_mirrors' value (see supra)
+##    depends of the <raw_mirrors> value (see supra)
 ## 5. Linear registration of the 3 last images on the first one (considered as the reference)
 ##    The reference image is resampled again, to get an isotropic voxel
 ##    (same voxel size in the 3 directions: X, Y, Z)
@@ -299,7 +300,7 @@ target_resolution = .3
 
 ##
 ## step 4. mirroring
-## depends on the 'raw_mirrors' value
+## depends on the <raw_mirrors> value
 ##
 
 

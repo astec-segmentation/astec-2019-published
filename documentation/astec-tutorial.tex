@@ -29,8 +29,8 @@ the \texttt{RAWDATA/} and \texttt{parameters/} sub-directories and a
 \dirtree{%
 .1 path/to/experiment/.
 .2 RAWDATA/.
-.2 parameters/.
 .2 README.
+.2 parameters/.
 }
 \mbox{}
 
@@ -66,6 +66,9 @@ where \texttt{LC/} and \texttt{LC/} stand respectively for the left
 and the right cameras.
 
 
+
+
+
 \section{Fusion}
 \label{sec:tutorial:fusion}
 
@@ -75,8 +78,7 @@ done with
 \begin{code}{0.8}
   \$ 1-fuse.py -p parameters/1-fuse-tutorial-parameters.py
 \end{code}
-\texttt{1-fuse-tutorial-parameters.py} being the parameter file
-describing the experiment (figure \ref{fig:tutorial:parameter:fusion}).
+\texttt{1-fuse-tutorial-parameters.py} being the dedicated parameter file  (figure \ref{fig:tutorial:parameter:fusion}).
 
 \begin{figure}
 \begin{framed}
@@ -92,7 +94,8 @@ describing the experiment (figure \ref{fig:tutorial:parameter:fusion}).
      9	acquisition_mirrors = False
     10	acquisition_resolution = (1., 1., 1.)
     11	
-    12	target_resolution = 1.0\end{verbatim}
+    12	target_resolution = 1.0
+\end{verbatim}
 \end{framed}
 \caption{\label{fig:tutorial:parameter:fusion} Tutorial parameter file for the fusion step.}
 \end{figure}
@@ -121,8 +124,8 @@ After processing, a \texttt{FUSE/} directory has been created
 .1 path/to/sample/.
 .2 FUSE/.
 .2 RAWDATA/.
-.2 parameters/.
 .2 README.
+.2 parameters/.
 }
 \mbox{}
 
@@ -138,12 +141,125 @@ The \texttt{FUSE/} directory contains
 }
 \mbox{}
 
-The fused images are named after \texttt{<EN>} (where \texttt{<XXX>}
+The fused images are named after \texttt{<EN>\_fuse\t<XXX>.inr} (where \texttt{<XXX>}
 denotes the value of the variable \texttt{XXX}) and indexed from
 \texttt{<begin>} to \texttt{<end>} (as the input data). The directory \texttt{LOGS/} contains
 a copy of the parameter file (stamped with date and hour) as well as a
 log file (also stamped with date and hour) reporting information about
 the processing.
+
+
+
+
+
+\section{Sequence intra-registration (or drift compensation) [1]}
+\label{sec:tutorial:intra:registration:1}
+
+We assume that we are located in the directory
+\texttt{/path/to/astec/tutorial/tuto-astec1/}. Running the sequence intra-registration is
+done with
+\begin{code}{0.8}
+  \$ 1.5-intraregistration.py -p parameters/1.5-intraregistration-tutorial-parameters-1.py 
+\end{code}
+\texttt{1.5-intraregistration-tutorial-parameters-1.py} being the
+dedicated parameter file  (figure \ref{fig:tutorial:parameter:intra:registration:1}).
+
+\begin{figure}
+\begin{framed}
+\begin{verbatim}
+     1	PATH_EMBRYO = '.'
+     2	
+     3	EN = '2019-Tutorial100'
+     4	
+     5	begin = 0
+     6	end = 20
+\end{verbatim}
+\end{framed}
+\caption{\label{fig:tutorial:parameter:intra:registration:1} Tutorial
+  parameter file for the sequence intra-registration step.}
+\end{figure}
+
+\begin{itemize}
+  \item the variable \texttt{PATH\_EMBRYO} is the path to the directory where
+    the directory \texttt{FUSE/} is located. It can be either relative (as in the
+    above example) or
+    global (it could have been \texttt{/path/to/astec/tutorial/tuto-astec1/}).
+  \item the variable \texttt{EN} is the prefix after which the  images
+    are named. 
+  \item the variables \texttt{begin} and \texttt{end} indicate respectively the
+    first and the last index of the input time points to be processed.
+\end{itemize}
+
+After processing, a \texttt{INTRAREG/} directory has been created
+
+\mbox{}
+\dirtree{%
+.1 path/to/sample/.
+.2 FUSE/.
+.2 INTRAREG/.
+.2 RAWDATA/.
+.2 README.
+.2 parameters/.
+}
+\mbox{}
+
+The \texttt{INTRAREG/} directory contains
+
+\mbox{}
+\dirtree{%
+.1 INTRAREG/.
+.2 INTRAREG\_RELEASE/.
+.3 CO-TRSFS/.
+.4 2019-Tutorial100\_intrareg\_flo000\_ref001.trsf.
+.4 \ldots.
+.4 2019-Tutorial100\_intrareg\_flo019\_ref020.trsf.
+.3 FUSE/.
+.4 2019-Tutorial100\_intrareg\_fuse\_t000.inr.
+.4 \ldots.
+.4 2019-Tutorial100\_intrareg\_fuse\_t020.inr.
+.3 LOGS/.
+.3 MOVIES/.
+.4 2019-Tutorial100\_intrareg\_fuse\_t0-20\_xy205.inr.
+.3 TRSFS\_t0-20/.
+.4 2019-Tutorial100\_intrareg\_t000.trsf.
+.4 \ldots.
+.4 2019-Tutorial100\_intrareg\_t020.trsf.
+.4 template\_t0-20.inr.
+}
+\mbox{}
+
+\begin{itemize}
+\itemsep -1ex
+\item The directory \texttt{CO-TRSF/} contains the co-registration
+  transformations.
+\item The directory \texttt{FUSE/} contains the resampled fused images
+  in the same geometry (images have the same dimensions along X, Y and
+  Z), with drift compensation (the eventual motion of the sample under the
+  microscope has been compensated). 
+\item The directory \texttt{MOVIES/} contains a 3D (which is a 2D+t)
+  image, here
+  \texttt{2019-Tutorial100\_intrareg\_fuse\_t0-20\_xy205.inr}, which
+  the \#205 XY-section of the resampled fused images for all the time
+  points.
+\item The directory \texttt{TRSFS/}  contains the transformation of
+  every fused image towards the reference one as well as the template
+  image (an image large enough to including each fused images after
+  resampling).
+\end{itemize}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
