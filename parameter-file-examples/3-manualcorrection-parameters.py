@@ -45,25 +45,12 @@ begin = 0
 ##
 
 
-# EXP_MARS=''
-
-## ##### explanation #####
-##
-## Path to the image to be corrected
-##
-## Mars segmentation results will be stored in 'PATH_EMBRYO'/SEG/SEG_'EXP_MARS'
-## (Mars is a seeded watershed procedure)
-## default value is
-## EXP_MARS = 'RELEASE'
-##
-
-
 
 # EXP_SEG = ''
 
 ## ##### explanation #####
 ##
-## Path to the corrected image
+## Path to both the image to be corrected and the result image to be saved
 ##
 ## Segmentation (Astec) results will be stored in 'PATH_EMBRYO'/SEG/SEG_'EXP_SEG'
 ## default value is
@@ -89,9 +76,9 @@ begin = 0
 
 
 ######################################################################
-#
-# manual correction parameters
-#
+##
+## manual correction parameters
+##
 ######################################################################
 
 
@@ -109,8 +96,8 @@ begin = 0
 
 
 
-# mancor_input_seg_file=''
-# mancor_output_seg_file=''
+# mancor_input_seg_file = ''
+# mancor_output_seg_file = ''
 
 ## ##### explanation #####
 ##
@@ -123,7 +110,7 @@ begin = 0
 
 
 
-mancor_mapping_file=''
+mancor_mapping_file = ''
 
 ## ##### explanation #####
 ##

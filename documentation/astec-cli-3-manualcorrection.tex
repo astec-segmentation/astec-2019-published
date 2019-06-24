@@ -1,0 +1,86 @@
+\section{\texttt{3-manualcorrection.py}}
+\label{sec:cli:manual:correction}
+
+The seeded watershed is likely to produce segmentation errors, even with a careful choice of parameters. It is advised to set the parameters to favour over-segmentations insted of under-segmentations since the former are much more easier to correct, which is the purpose of \texttt{3-manualcorrection.py}.
+
+
+\subsection{\texttt{3-manualcorrection.py} options}
+
+The following options are available:
+\begin{description}
+ \itemsep -1ex
+\item[\texttt{-h}] prints a help message
+\item[\texttt{-p \underline{file}}] indicates the parameter file to be parsed
+\item[\texttt{-e \underline{path}}] indicates the
+  \texttt{\underline{path}} to the directory where the
+  \texttt{RAWDATA/} directory is located
+\item[\texttt{-k}] allows to keep the temporary files
+\item[\texttt{-f}] forces execution, even if (temporary) result files
+  are already existing
+\item[\texttt{-v}] increases verboseness (both at console and in the
+  log file)
+\item[\texttt{-nv}] no verboseness
+\item[\texttt{-d}]  increases debug information (in the
+  log file)
+\item[\texttt{-nd}] no debug information
+\item[\texttt{-i \underline{input\_image}}] set the \texttt{\underline{input\_image}} file to be corrected. Allows to skip the automated naming of files.
+  \item[\texttt{-o \underline{output\_image}}] set the resulting \texttt{\underline{ouput\_image}} file to be saved. Allows to skip the automated naming of files. 
+\item[\texttt{-m \underline{mapping\_file}}] set the \texttt{\underline{mapping\_file}} to be used for the correction.
+\item[\texttt{-nsc \underline{smallest\_cells}}] set the number of the smallest cells to be displayed after correction. The smallest cells are the most likely to be issued from an over-segmentation.
+\item[\texttt{-nlc \underline{largest\_cells}}] set the number of the largest cells to be displayed after correction. The largest cells are the most likely to be issued from an under-segmentation.  
+\end{description}
+
+
+
+\subsection{Output data}
+
+The results are stored in sub-directories
+\texttt{SEG/SEG\_<EXP\_SEG>} under the
+\texttt{/path/to/experiment/} directory where where \texttt{<EXP\_SEG>} is the value of the variable \texttt{EXP\_SEG} (its
+default value is '\texttt{RELEASE}').
+\texttt{<EN>\_seg\_t<begin>.inr} is the correction of the segmentation image \texttt{<EN>\_mars\_t<begin>.inr}.
+
+\dirtree{%
+.1 /path/to/experiment/.
+.2 \ldots.
+.2 SEG.
+.3 SEG\_<EXP\_SEG>.
+.4 <EN>\_mars\_t<begin>.inr.
+.4 <EN>\_seg\_t<begin>.inr.
+.4 LOGS/.
+.4 RECONSTRUCTION/.
+.2 \ldots.
+}
+
+\subsection{Segmentation correction parameters}
+
+\texttt{3-manualcorrection.py} parses a correction file whose name is given by the variable \texttt{mancor\_mapping\_file}. The syntax of this file is very simple. Lines beginning with \texttt{\#} are ignored (and can be used to insert comments in the files). Non-empty lines should contain two numbers separated by a space, and \texttt{3-manualcorrection.py} will replace the first number by the second in the segmentation file.
+
+E.g. a cell $c$ is recognized to be over-segmented, and then is represented by two labels, says 9 and 10. Thus the line
+\begin{framed}
+\begin{verbatim}
+10 9
+\end{verbatim}
+\end{framed}
+will replace all 10's by 9's in the segmentation image,  thus $c$ will only be represented by 9's after correction. See also the tutorial section \ref{sec:tutorial:manual:correction} for an other example.
+
+\subsection{Parameter list}
+
+Please also refer to the file
+\texttt{parameter-file-examples/3-manualcorrection-parameters.py}
+
+\begin{itemize}
+\itemsep -1ex
+\item \texttt{EN}
+\item \texttt{EXP\_SEG}
+\item \texttt{PATH\_EMBRYO}
+\item \texttt{begin}
+\item \texttt{default\_image\_suffix}
+\item \texttt{delta}
+\item \texttt{mancor\_input\_seg\_file}
+\item \texttt{mancor\_mapping\_file}
+\item \texttt{mancor\_output\_seg\_file}
+\item \texttt{mars\_begin}
+\item \texttt{mars\_end}
+\item \texttt{result\_image\_suffix}
+\end{itemize}

@@ -97,10 +97,12 @@ done with
     12	target_resolution = 1.0
 \end{verbatim}
 \end{framed}
-\caption{\label{fig:tutorial:parameter:fusion} Tutorial parameter file for the fusion step.}
+\caption{\label{fig:tutorial:parameter:fusion} Tutorial parameter file
+  for the fusion step (lines are numbered).}
 \end{figure}
 
 \begin{itemize}
+  \itemsep -1ex
   \item the variable \texttt{PATH\_EMBRYO} is the path to the directory where
     the directory \texttt{RAWDATA/} is located. It can be either relative (as in the
     above example) or
@@ -180,6 +182,7 @@ dedicated parameter file  (figure \ref{fig:tutorial:parameter:intra:registration
 \end{figure}
 
 \begin{itemize}
+  \itemsep -1ex
   \item the variable \texttt{PATH\_EMBRYO} is the path to the directory where
     the directory \texttt{FUSE/} is located. It can be either relative (as in the
     above example) or
@@ -261,7 +264,7 @@ done with
 \begin{code}{0.8}
   \$ 2-mars.py -p parameters/2-mars-tutorial-parameters.py 
 \end{code}
-\texttt{2-mars-tutorial-parameters.py } being the
+\texttt{2-mars-tutorial-parameters.py} being the
 dedicated parameter file  (figure \ref{fig:tutorial:parameter:mars}).
 
 \begin{figure}
@@ -280,6 +283,7 @@ dedicated parameter file  (figure \ref{fig:tutorial:parameter:mars}).
 
 
 \begin{itemize}
+  \itemsep -1ex
   \item the variable \texttt{PATH\_EMBRYO} is the path to the directory where
     the directory \texttt{FUSE/} is located. It can be either relative (as in the
     above example) or
@@ -321,7 +325,112 @@ The \texttt{SEG/} directory contains
 
 
 
+\section{Correction of  the first time point segmentation}
+\label{sec:tutorial:manual:correction}
 
+
+We assume that we are located in the directory
+\texttt{/path/to/astec/tutorial/tuto-astec1/}. Segmenting the first
+time point is
+done with
+\begin{code}{0.8}
+  \$ 3-manualcorrection.py -p parameters/3-manualcorrection-tutorial-parameters.py 
+\end{code}
+\texttt{3-manualcorrection-tutorial-parameters.py} being the
+dedicated parameter file  (figure \ref{fig:tutorial:parameter:manual:correction}).
+
+\begin{figure}
+\begin{framed}
+\begin{verbatim}
+     1	PATH_EMBRYO = '.'
+     2	
+     3	EN = '2019-Tutorial100'
+     4	
+     5	begin = 0
+     6	
+     7	mancor_mapping_file='parameters/3-manualcorrection-tutorial.txt'
+\end{verbatim}
+\end{framed}
+\caption{\label{fig:tutorial:parameter:manual:correction} Tutorial
+  parameter file for the segmentation correction of the first time
+  point. See figure
+  \protect\ref{fig:tutorial:parameter:manual:correction:file} for the
+  \texttt{<mancor\_mapping\_file>} file.}
+\end{figure}
+
+\begin{figure}
+\begin{framed}
+\begin{verbatim}
+10 6
+20 13
+9 4
+26 11
+21 11
+27 15
+32 23
+39 31
+35 20
+38 43
+46 45
+52 42
+58 62
+63 60
+78 67
+74 66
+68 66
+83 75
+82 77
+\end{verbatim}
+\end{framed}
+\caption{\label{fig:tutorial:parameter:manual:correction:file}
+  The segmentation correction file
+  \texttt{3-manualcorrection-tutorial.txt} for the first time point. The first
+  number is the line index (lines are numbered).}
+\end{figure}
+
+\begin{itemize}
+  \itemsep -1ex
+  \item the variable \texttt{PATH\_EMBRYO} is the path to the directory where
+    the directory \texttt{SEG/} is located. It can be either relative (as in the
+    above example) or
+    global (it could have been \texttt{/path/to/astec/tutorial/tuto-astec1/}).
+  \item the variable \texttt{EN} is the prefix after which the  images
+    are named. 
+  \item the variable \texttt{begin} indicates  the
+    index of the first input time point (to be processed).
+  \item the variable \texttt{mancor\_mapping\_file} indicates the file
+    name containing the correction to be applied.
+\end{itemize}
+
+After processing,the \texttt{SEG/} directory contains
+
+\mbox{}
+\dirtree{%
+.1 SEG/.
+.2 SEG\_RELEASE/.
+.3 2019-Tutorial100\_mars\_t000.inr.
+.3 2019-Tutorial100\_seg\_t000.inr.
+.3 LOGS/.
+.3 RECONSTRUCTION/.
+}
+\mbox{}
+
+\texttt{2019-Tutorial100\_seg\_t000.inr} is the corrected version of
+the segmentation obtained at the previous step.
+
+
+
+
+
+
+
+
+
+
+
+
+
+  
 
 \pagebreak
 

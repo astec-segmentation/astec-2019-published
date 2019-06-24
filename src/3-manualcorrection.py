@@ -1,6 +1,7 @@
 #!/usr/bin/python2.7
 
 import os
+import sys
 import time
 from argparse import ArgumentParser
 
@@ -179,6 +180,10 @@ def main():
     commonTools.copy_date_stamped_file(parameterFile, environment.path_logdir, start_time)
 
     if parameters.mapping_file is not None and len(str(parameters.mapping_file)) > 0:
+        if not os.path.isfile(parameters.mapping_file):
+            monitoring.to_log_and_console("... file '"+str(parameters.mapping_file)+"' does not seem to exist")
+            monitoring.to_log_and_console("\t Exiting")
+            sys.exit(1)
         commonTools.copy_date_stamped_file(parameters.mapping_file, environment.path_logdir, start_time)
 
     #
