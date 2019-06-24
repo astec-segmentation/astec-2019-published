@@ -1,0 +1,125 @@
+\section{\texttt{2-mars.py}}
+\label{sec:cli:mars}
+
+The name \texttt{mars} comes from \cite{fernandez:hal-00521491} where \texttt{MARS} is the acronym of \textit{multiangle image acquisition, 3D reconstruction and cell segmentation}.
+
+This method aims at producing a segmentation of a membrane cell image (e.g.  a fused image) into a segmention image. This segmentation image is a integer-valued image where each integer labeled an unique cell in the image. By convention, '1' is the background label, while cells have labels greater than 2. It is  is made of the following steps:
+\begin{enumerate}
+\itemsep -1ex
+\item  Optionally, a transformation of the input image.
+\item A seeded watershed.
+\end{enumerate}
+
+
+\subsection{\texttt{2-mars.py} options}
+
+The following options are available:
+\begin{description}
+  \itemsep -1ex
+\item[\texttt{-h}] prints a help message
+\item[\texttt{-p \underline{file}}] indicates the parameter file to be parsed
+\item[\texttt{-e \underline{path}}] indicates the
+  \texttt{\underline{path}} to the directory where the
+  \texttt{RAWDATA/} directory is located
+\item[\texttt{-k}] allows to keep the temporary files
+\item[\texttt{-f}] forces execution, even if (temporary) result files
+  are already existing
+\item[\texttt{-v}] increases verboseness (both at console and in the
+  log file)
+\item[\texttt{-nv}] no verboseness
+\item[\texttt{-d}]  increases debug information (in the
+  log file)
+\item[\texttt{-nd}] no debug information
+\end{description}
+
+
+
+\subsection{Output data}
+
+The results are stored in sub-directories
+\texttt{SEG/SEG\_<EXP\_SEG>} under the
+\texttt{/path/to/experiment/} directory where where \texttt{<EXP\_SEG>} is the value of the variable \texttt{EXP\_SEG} (its
+default value is '\texttt{RELEASE}'). 
+
+\dirtree{%
+.1 /path/to/experiment/.
+.2 \ldots.
+.2 SEG.
+.3 SEG\_<EXP\_SEG>.
+.4 <EN>\_mars\_t<begin>.inr.
+.4 LOGS/.
+.4 RECONSTRUCTION/.
+.2 \ldots.
+}
+
+\subsection{Segmentation parameters}
+
+
+\subsubsection{Input image for watershed computation}
+
+Before the watershed segmentation, the input image may be pre-processed. This pre-processing is controlled by the two variables.
+\begin{itemize}
+\itemsep -1ex
+\item \texttt{mars\_intensity\_transformation} whose values are to be chosen in \texttt{None}, \texttt{'Identity'}, or \texttt{'Normalization\_to\_u8'}. Default is \texttt{'Identity'}.
+\item \texttt{mars\_intensity\_enhancement} whose values are to be chosen in \texttt{None} or \texttt{GACE}. Default is \texttt{None}.
+\end{itemize}
+Each of these variables, if not \texttt{None}, induce a transformation of the input (i.e. fused) image. If both values are not known, the input image for the watershed is the result of the maximum operator over the two images.
+
+\begin{itemize}
+\itemsep -1ex
+\item \texttt{mars\_intensity\_transformation = 'Identity'}: the input image is not transformed. 
+  \item \texttt{mars\_intensity\_transformation = 'Normalization\_to\_u8'}: input images are usually encoded on 2 bytes. The choice transformed the input image in an 1-byte image by linearly mapping the input image values from $[I_{min}, I_{max}]$ to $[0, 255]$. $I_{min}$ and $I_{max}$ correspond respectively to the 1\% and to the 99\% percentiles of the input image cumulative histogram. Values below $I_{min}$ are set to $0$ while values above $I_{max}$ are set to $255$.
+  \item \texttt{mars\_intensity\_enhancement = 'GACE'}: \texttt{GACE} stands for \textit{Global Automated Cell Extractor}. This is the method described in \cite{michelin:hal-00915000}. It consists in
+    \begin{enumerate}
+    \itemsep -1ex
+    \item  extracting a centerplane image of the membranes,
+    \item  thresholding this centerplane image, and 
+    \item  reconstruct the membranes through a tensor voting method.
+    \end{enumerate}
+\end{itemize}
+
+If the input image is transformed before segmented, the transformed image is named \texttt{<EN>\_fuse\_t<begin>\_membrane.inr} and stored in the directory \texttt{SEG/SEG\_<EXP\_SEG>/RECONSTRUCTION/} if the value of the variable \texttt{mars\_keep\_reconstruction} is set to \texttt{True}.
+\subsubsection{Seeded watershed}
+
+The seed extraction is made of the following steps:
+\begin{enumerate}
+\itemsep -1ex
+\item Gaussian smoothing of the input image, the gaussian standard deviation being given by the variable \texttt{watershed\_seed\_sigma}.
+\item Extraction of the $h$-minima of the previous image, $h$  being given by the variable \texttt{watershed\_seed\_hmin}.
+\item Hysteresis thresholding (and labeling)  of the $h$-minima image, with a high threshold equal to $h$ and and a low threshold equal to $1$. It then only selects the $h$-minima that have an actual depth of $h$.
+\end{enumerate}
+Given the seeds, the watershed is performed on the smoothed input image (gaussian standard deviation being given by the variable \texttt{watershed\_membrane\_sigma}).
+
+
+\subsection{Parameter list}
+
+Please also refer to the file
+\texttt{parameter-file-examples/1-fuse-parameters.py}
+
+\begin{itemize}
+\itemsep -1ex
+\item \texttt{EN}
+\item \texttt{EXP\_FUSE}
+\item \texttt{EXP\_MARS}
+\item \texttt{PATH\_EMBRYO}
+\item \texttt{begin}
+\item \texttt{default\_image\_suffix}
+\item \texttt{delta}
+\item \texttt{mars}
+\item \texttt{mars\_begin}
+\item \texttt{mars\_end}
+\item \texttt{mars\_hard\_threshold}
+\item \texttt{mars\_intensity\_enhancement}
+\item \texttt{mars\_intensity\_transformation}
+\item \texttt{mars\_keep\_reconstruction}
+\item \texttt{mars\_manual}
+\item \texttt{mars\_manual\_sigma}
+\item \texttt{mars\_sample}
+\item \texttt{mars\_sensitivity}
+\item \texttt{mars\_sigma\_TV}
+\item \texttt{mars\_sigma\_membrane}
+\item \texttt{result\_image\_suffix}
+\item \texttt{watershed\_membrane\_sigma}
+\item \texttt{watershed\_seed\_hmin}
+\item \texttt{watershed\_seed\_sigma}
+\end{itemize}

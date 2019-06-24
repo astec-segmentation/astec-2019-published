@@ -302,7 +302,7 @@ images.
 \subsubsection{Output data directory names}
 
 The resulting fused images are stored in sub-directories
-\texttt{FUSE/FUSE\_XXX} under the \texttt{FUSE/} directory
+\texttt{FUSE/FUSE\_<EXP\_FUSE>} under the \texttt{/path/to/experiment/} directory
 
 \mbox{}
 \dirtree{%
@@ -310,14 +310,12 @@ The resulting fused images are stored in sub-directories
 .2 RAWDATA/.
 .3 \ldots.
 .2 FUSE/.
-.3 FUSE\_RELEASE/.
-.4 \ldots.
-.3 FUSE\_XXX/.
+.3 FUSE\_<EXP\_FUSE>/.
 .4 \ldots.
 }
 \mbox{}
 
-'\texttt{XXX}' is given by the variable \texttt{EXP\_FUSE} (its
+where \texttt{<EXP\_FUSE>} is the value of the variable \texttt{EXP\_FUSE} (its
 default value is '\texttt{RELEASE}'). Hence, the line
 \begin{verbatim}
 EXP_FUSE = 'TEST'
@@ -365,7 +363,7 @@ This will ease their visual inspection to decide which values of the variable co
 \subsubsection{Output data file names}
 
 Fused image files are named after the variable \texttt{EN}:
-\texttt{<EN>\_fuse\_txxx.inr} where \texttt{xxx} is the time point
+\texttt{<EN>\_fuse\_t<xxx>.inr} where \texttt{<xxx>} is the time point
 index encoded by a 3-digit integer (with 0 padding).
 
 
@@ -375,7 +373,7 @@ Variables \texttt{EXP\_FUSE\_CHANNEL\_2} and
 \texttt{EXP\_FUSE\_CHANNEL\_3} allows to set the directory names for
 the resulting fused images of the other channels.
 
-\subsection{Tuning fusion parameters}
+\subsection{Fusion parameters}
 
 % \subsubsection{Step \ref{it:fusion:slit:line}: slit line correction}
 

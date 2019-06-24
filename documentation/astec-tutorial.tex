@@ -251,18 +251,79 @@ The \texttt{INTRAREG/} directory contains
 
 
 
+\section{Segmentation of the first time point}
+
+
+We assume that we are located in the directory
+\texttt{/path/to/astec/tutorial/tuto-astec1/}. Segmenting the first
+time point is
+done with
+\begin{code}{0.8}
+  \$ 2-mars.py -p parameters/2-mars-tutorial-parameters.py 
+\end{code}
+\texttt{2-mars-tutorial-parameters.py } being the
+dedicated parameter file  (figure \ref{fig:tutorial:parameter:mars}).
+
+\begin{figure}
+\begin{framed}
+\begin{verbatim}
+     1	PATH_EMBRYO = '.'
+     2	
+     3	EN = '2019-Tutorial100'
+     4	
+     5	begin = 0
+\end{verbatim}
+\end{framed}
+\caption{\label{fig:tutorial:parameter:mars} Tutorial
+  parameter file for the segmentation of the first time point.}
+\end{figure}
+
+
+\begin{itemize}
+  \item the variable \texttt{PATH\_EMBRYO} is the path to the directory where
+    the directory \texttt{FUSE/} is located. It can be either relative (as in the
+    above example) or
+    global (it could have been \texttt{/path/to/astec/tutorial/tuto-astec1/}).
+  \item the variable \texttt{EN} is the prefix after which the  images
+    are named. 
+  \item the variable \texttt{begin} indicates  the
+    index of the first input time point (to be processed).
+\end{itemize}
+
+After processing, a \texttt{SEG/} directory has been created
+
+\mbox{}
+\dirtree{%
+.1 path/to/sample/.
+.2 FUSE/.
+.2 INTRAREG/.
+.2 RAWDATA/.
+.2 README.
+.2 SEG/.
+.2 parameters/.
+}
+\mbox{}
+
+The \texttt{SEG/} directory contains
+
+\mbox{}
+\dirtree{%
+.1 SEG/.
+.2 SEG\_RELEASE/.
+.3 2019-Tutorial100\_mars\_t000.inr.
+.3 LOGS/.
+.3 RECONSTRUCTION/.
+}
+\mbox{}
+
+\texttt{2019-Tutorial100\_mars\_t000.inr} is the segmented first
+  time point of the sequence.
 
 
 
 
 
-
-
-
-
-
-
-
+\pagebreak
 
 
 

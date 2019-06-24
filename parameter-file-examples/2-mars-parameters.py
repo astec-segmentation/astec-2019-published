@@ -7,6 +7,7 @@
 ############################################################
 
 
+
 # PATH_EMBRYO = ''
 
 ## ##### explanation #####
@@ -58,14 +59,14 @@ begin = 0
 
 
 
-# EXP_MARS=''
+# EXP_SEG = ''
 
 ## ##### explanation #####
 ##
-## Mars segmentation results will be stored in 'PATH_EMBRYO'/SEG/SEG_'EXP_MARS'
+## Mars segmentation results will be stored in 'PATH_EMBRYO'/SEG/SEG_'EXP_SEG'
 ## (Mars is a seeded watershed procedure)
 ## default value is
-## EXP_MARS = 'RELEASE'
+## EXP_SEG = 'RELEASE'
 ##
 
 

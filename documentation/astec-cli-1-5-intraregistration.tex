@@ -1,65 +1,121 @@
 \section{\texttt{1.5-intraregistration.py}}
 \label{sec:cli:intraregistration}
 
-The sequence intra-registration procedure can be done either after the fusion step, or after the segmentation step. It aims at
+The sequence intra-registration procedure can be done either after the fusion step, or after the (post-)segmentation step. It aims at
 \begin{itemize}
 \itemsep -1ex
 \item compensating for the eventual motion of the imaged sample with respect to the microscope
 \item resampling the fusion and/or the segmentation images into a common frame/geometry, so they can better be compared, and
-\item building 2D+t images made of 2D sections from either the  fusion and/or the segmentation images, so that the quality of the fusion and/of the tracking step can be visually assessed.
+\item building 2D+t images made of 2D sections from either the  fusion
+  and/or the segmentation images, so that the quality of the fusion
+  and/of the tracking step can be visually assessed. 
 \end{itemize}
 
-The sequence intra-registration is made of the following steps.
+
+The intra-registration procedure is made of the following steps:
 \begin{enumerate}
 \itemsep -1ex
-\item Co-registration of every couple of successive fused images.
-\item Composition of the co-registration transformations with respect to a reference fused image.
-\item Building a template image that will 
+\item Co-registration of pairs of successive fused images (section
+  \ref{sec:cli:intraregistration:coregistration}). This yields the
+  transformations $T_{t+1 \leftarrow t}$. Fused images are located in
+  \verb|<EMBRYO>/FUSE/FUSE_<EXP_FUSE>|: the parameter \verb|EXP_FUSE|
+  is either set in the parameter file or is set at
+  \verb|RELEASE|. This step may be long. 
+
+\item Composition of transformations issued from the co-registration
+  step. This step computes the transformations $T_{ref \leftarrow
+    t}$. towards a reference image \verb|ref| given by the parameter
+  \verb|intra_registration_reference_index|. 
+
+\item Computation of the \textit{template} image (section
+  \ref{sec:cli:intraregistration:template}). This \textit{template}
+  image dimension are computed so that the useful information of all
+  resampled images fits into it. Useful information can be issued from
+  either the fused sequence, the segmentation sequence or the
+  post-segmentation sequence. It is indicated by the
+  \verb|intra_registration_template_type| which value can be either
+  \verb|'FUSION'|,  \verb|'SEGMENTATION'|, or
+  \verb|'POST-SEGMENTATION'|. This step may be long. 
+
+\item Resampling of either the fused or the segmentation images
+  (section \ref{sec:cli:intraregistration:resampling}). Note that
+  changing the parameters for this step will not require to re-compute
+  the first steps. 
+
+\item Extraction of 2D+t images from the resampled sequences (section
+  \ref{sec:cli:intraregistration:movies}). Note that changing the
+  parameters for this step (i.e. requiring extra movies) will not
+  require to re-compute the first steps, with an eventual exception
+  for the resampling step. 
+
 \end{enumerate}
 
 
 
+\subsection{\texttt{1.5-intraregistration.py} options}
+
+The following options are available:
+\begin{description}
+  \itemsep -1ex
+\item[\texttt{-h}] prints a help message
+\item[\texttt{-p \underline{file}}] indicates the parameter file to be parsed
+\item[\texttt{-e \underline{path}}] indicates the
+  \texttt{\underline{path}} to the directory where the
+  \texttt{RAWDATA/} directory is located
+\item[\texttt{-k}] allows to keep the temporary files
+\item[\texttt{-f}] forces execution, even if (temporary) result files
+  are already existing
+\item[\texttt{-v}] increases verboseness (both at console and in the
+  log file)
+\item[\texttt{-nv}] no verboseness
+\item[\texttt{-d}]  increases debug information (in the
+  log file)
+\item[\texttt{-nd}] no debug information
+\end{description}
 
 
+\subsection{Output data}
 
-Its results will be stored in the \verb|INTRAREG/INTRAREG_<EXP_INTRAREG>| subdirectory
-
-
-
-where \verb|<EXP>| is set by \verb|EXP_INTRAREG| from the parameter file. \verb|POST| and \verb|SEG| directories are created only if respectively segmentation and post-segmentation sequences are required to be resampled/reconstructed in the common frame.
+The results are stored in sub-directories
+\texttt{INTRAREG/INTRAREG\_<EXP\_INTRAREG>} under the
+\texttt{/path/to/experiment/} directory where where \texttt{<EXP\_INTRAREG>} is the value of the variable \texttt{EXP\_INTRAREG} (its
+default value is '\texttt{RELEASE}'). 
 
 \dirtree{%
-.1 <EMBRYO>.
+.1 /path/to/experiment/.
 .2 \ldots.
 .2 INTRAREG.
-.3 INTRAREG\_<EXP>.
+.3 INTRAREG\_<EXP\_INTRAREG>.
 .4 CO-TRSFS.
 .4 FUSE.
 .4 LOGS.
 .4 MOVIES.
-.4 POST.
-.4 SEG.
-.4 TRSFS\_t<F>-<L>.
+.4 [POST].
+.4 [SEG].
+.4 TRSFS\_t<begin>-<end>.
 .2 \ldots.
 }
 
-The intra-registration procedure is made of the following steps:
-\begin{enumerate}
 
-\item Co-registration of pairs of successive fused images (section \ref{sec:cli:intraregistration:coregistration}). This yields the transformations $T_{t+1 \leftarrow t}$. Fused images are located in \verb|<EMBRYO>/FUSE/FUSE_<EXP_FUSE>|: the parameter \verb|EXP_FUSE| is either set in the parameter file or is set at \verb|RELEASE|. This step may be long.
+\texttt{INTRAREG/INTRAREG\_<EXP\_INTRAREG>/FUSE} contains the fused
+images after resampling in a common geometry (i.e. all image have the
+same X, Y and Z dimensions)
 
-\item Composition of transformations issued from the co-registration  step. This step computes the transformations $T_{ref \leftarrow t}$. towards a reference image \verb|ref| given by the parameter \verb|intra_registration_reference_index|.
+\dirtree{%
+.1 /path/to/experiment/.
+.2 \ldots.
+.2 INTRAREG.
+.3 INTRAREG\_<EXP\_INTRAREG>.
+.4 \ldots.
+.4 FUSE.
+.5 <EN>\_intrareg\_fuse\_t<xxx>.inr
+.4 \ldots.
+.2 \ldots.
+}
 
-\item Computation of the \textit{template} image (section \ref{sec:cli:intraregistration:template}). This \textit{template} image dimension are computed so that the useful information of all resampled images fits into it. Useful information can be issued from either the fused sequence, the segmentation sequence or the post-segmentation sequence. It is indicated by the \verb|intra_registration_template_type| which value can be either \verb|'FUSION'|,  \verb|'SEGMENTATION'|, or \verb|'POST-SEGMENTATION'|. This step may be long.
-
-\item Resampling of either the fused or the segmentation images  (section \ref{sec:cli:intraregistration:resampling}). Note that changing the parameters for this step will not require to re-compute the first steps.
-
-\item Extraction of 2D+t images from the resampled sequences (section \ref{sec:cli:intraregistration:movies}). Note that changing the parameters for this step (i.e. requiring extra movies) will not require to re-compute the first steps, with an eventual exception for the resampling step.
-
-\end{enumerate}
 
 
-\subsubsection{Co-registration parameters}
+\subsection{Co-registration parameters}
 \label{sec:cli:intraregistration:coregistration}
 Default registration parameters for the co-registration are set by:
 \begin{verbatim}
@@ -78,7 +134,7 @@ intra_registration_pyramid_lowest_level = 4
 \end{verbatim}
 
 
-\subsubsection{Template building parameters}
+\subsection{Template building parameters}
 \label{sec:cli:intraregistration:template}
 
 \begin{verbatim}
@@ -116,7 +172,7 @@ The resampled fusion and segmentation images will be stored respectively in \ver
 # intra_registration_resample_post_segmentation_images = False
 \end{verbatim}
 
-\subsubsection{2D+t movies}
+\subsection{2D+t movies}
 \label{sec:cli:intraregistration:movies}
 For either visual assessment or illustration purposes, 2D+t (i.e. 3D) images can be built from 2D sections extracted from the resampled temporal series. This is controlled by the following parameters:
 \begin{verbatim}
@@ -142,3 +198,50 @@ intra_registration_xy_movie_fusion_images = [100, 200];
 \end{verbatim}
 will build two movies with XY-sections located respectively at Z values of 100 and 200. The same stands for the other orientation and for the resampled segmentation images.
 
+\subsection{Parameter list}
+
+Please also refer to the file
+\texttt{parameter-file-examples/1-fuse-parameters.py}
+
+\begin{itemize}
+\itemsep -1ex
+\item \texttt{EN}
+\item \texttt{EXP\_FUSE}
+\item \texttt{EXP\_INTRAREG}
+\item \texttt{EXP\_POST}
+\item \texttt{EXP\_SEG}
+\item \texttt{PATH\_EMBRYO}
+\item \texttt{begin}
+\item \texttt{default\_image\_suffix}
+\item \texttt{delta}
+\item \texttt{end}
+\item \texttt{intra\_registration\_compute\_registration}
+\item \texttt{intra\_registration\_lts\_fraction}
+\item \texttt{intra\_registration\_margin}
+\item \texttt{intra\_registration\_movie\_fusion\_images}
+\item \texttt{intra\_registration\_movie\_post\_segmentation\_images}
+\item \texttt{intra\_registration\_movie\_segmentation\_images}
+\item \texttt{intra\_registration\_normalization}
+\item \texttt{intra\_registration\_pyramid\_highest\_level}
+\item \texttt{intra\_registration\_pyramid\_lowest\_level}
+\item \texttt{intra\_registration\_reference\_index}
+\item \texttt{intra\_registration\_resample\_fusion\_images}
+\item \texttt{intra\_registration\_resample\_post\_segmentation\_images}
+\item \texttt{intra\_registration\_resample\_segmentation\_images}
+\item \texttt{intra\_registration\_resolution}
+\item \texttt{intra\_registration\_sigma\_segmentation\_images}
+\item \texttt{intra\_registration\_template\_threshold}
+\item \texttt{intra\_registration\_template\_type}
+\item \texttt{intra\_registration\_transformation\_estimation\_type}
+\item \texttt{intra\_registration\_transformation\_type}
+\item \texttt{intra\_registration\_xy\_movie\_fusion\_images}
+\item \texttt{intra\_registration\_xy\_movie\_post\_segmentation\_images}
+\item \texttt{intra\_registration\_xy\_movie\_segmentation\_images}
+\item \texttt{intra\_registration\_xz\_movie\_fusion\_images}
+\item \texttt{intra\_registration\_xz\_movie\_post\_segmentation\_images}
+\item \texttt{intra\_registration\_xz\_movie\_segmentation\_images}
+\item \texttt{intra\_registration\_yz\_movie\_fusion\_images}
+\item \texttt{intra\_registration\_yz\_movie\_post\_segmentation\_images}
+\item \texttt{intra\_registration\_yz\_movie\_segmentation\_images}
+\item \texttt{result\_image\_suffix}
+\end{itemize}

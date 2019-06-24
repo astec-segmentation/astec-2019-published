@@ -123,7 +123,7 @@ raw_resolution = (.17, .17, 1.)
 ##
 ## When temporary files are kept (option -k), LEFTCAM_STACKZERO, RIGHTCAM_STACKZERO
 ## LEFTCAM_STACKONE, and RIGHTCAM_STACKONE related files are respectively stored in
-## directories FUSE/FUSE_<EXP_FUSE>/TEMP_XXX/ANGLE_[0,1,2,3]
+## directories FUSE/FUSE_<EXP_FUSE>/TEMP_<XXX>/ANGLE_[0,1,2,3]
 ## 
 ## multi-channel fusion
 ## --------------------

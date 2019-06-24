@@ -76,138 +76,14 @@ will contain processing results.
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %
+% 2-mars.py
+%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+\input{astec-cli-2-mars}
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%
 % 
 %
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-
-
-
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-%
-% 
-%
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-
-
-
-\pagebreak
-
-From version 2.0, the data architecture should be as follows
-\dirtree{%
-.1 <EMBRYO>.
-.2 RAWDATA.
-.3 LC.
-.4 Stack0000.
-.4 Stack0001.
-.3 RC.
-.4 Stack0000.
-.4 Stack0001.
-.2 FUSE.
-.3 FUSE\_<EXP\_1>.
-.3 FUSE\_<EXP\_2>.
-.3 \ldots .
-.3 FUSE\_RELEASE.
-.2 SEG.
-.3 SEG\_<EXP>.
-.3 \ldots .
-.3 SEG\_RELEASE.
-.2 POST.
-.3 POST\_<EXP>.
-.3 \ldots .
-.3 POST\_RELEASE.
-}
-
-
-\texttt{<SOMETHING>\_RELEASE} sub-directories should content the "last version" validated by an expert. \texttt{<SOMETHING>\_<EXP\_x>} are folders containing the different experiments conducted at one given step (with different parameters/methods). After inspection of the results, one of them is supposed to be renamed as  \texttt{<SOMETHING>\_RELEASE} and the others can be deleted.
-
-
-Particular files:
-\begin{itemize}
-\item[] \texttt{nomenclature.py}: file fixing the set of naming rules in working directories
-\begin{itemize}
-\item  this file should not be modified.
-\end{itemize}
-\item[] \texttt{parameters.py}: file defining the set of parameters useful for all the process steps (parameters are all prefixed with respect to the step they are used in).
-\begin{itemize}
-\item  it is a "template" file which should be duplicated and whose copy can be modified by the user to its convenience (only the parameter values should be modified, not their name...).
-\end{itemize}
-\end{itemize}
-
-
-
-The scripts of steps \texttt{1-fuse.py}, \texttt{2-mars.py}, \texttt{3-manualcorrection.py}, \texttt{4-astec.py}, \texttt{5-postcorrection.py} are executables, so that each astec step calling can be made as described here:
-For example, in order to launch the fusion step on an embryo called \texttt{"171107-Karine-St8"} one should:
-\begin{enumerate}
-\item Duplicate the file \texttt{<astec-package>/parameters.py} and rename it as a new file \texttt{<arbitrary-path>/parameters\_karine.py}
-\item Edit this new  file \texttt{<arbitrary-path>/parameters\_karine.py}to specify the desired value of each parameter related to the fusion step
-\item In a terminal,
-\begin{code}{0.8}
-\$ cd <astec-package> \# in order to be in the astec directory (/media/DATA/Codes/astec-package on Hermione) \\
-\$./1-fuse.py --parameters  <arbitrary-path>/parameters\_karine.py --embryo-rep /media/DATA/171107-Karine-St8/
-\end{code}
- (or equivalently,a shorter format)
- \begin{code}{0.8}
-\$./1-fuse.py -p  <arbitrary-path>/parameters\_karine.py -e /media/DATA/171107-Karine-St8/
-\end{code}
-\end{enumerate}
-
-
-At each Astec step execution, a copy of the parameters file as well as a log file are automatically generated in the target working directory.
-
-For each Astec step, it is possible to display the help relative to the corresponding script by launching the script with the option \option{--help}. For example, for the fusion step:
-
-    In a terminal, launch the command line:
-\begin{code}{0.8}
-\$ <astec-package>/1-fuse.py --help
-\end{code}
-    The terminal displays the following message:
-    
-\begin{code}{0.8}
-    Usage: 1-fuse.py [options] \\
-    Options:\\
-      -h, --help            show this help message and exit\\
-      -p FILE, --parameters=FILE\\
-                                python file containing parameters definition\\
-      -e PATH, --embryo-rep=PATH\\
-                                path to the embryo data\\
-      -q, --quiet          don't print status messages to stdout\\
-\end{code}
-
-
-
-
-
-\section{List of command line interfaces}
-
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-%
-% 1-fuse.py
-%
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-
-
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-%
-%
-%
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-
-
-\subsection{\texttt{1.5-intraregistration-GC.py}}
-
-
-\subsection{\texttt{2-mars.py}}
-
-\subsection{\texttt{3-manualcorrection.py}}
-
-\subsection{\texttt{4-astec.py}}
-
-\subsection{\texttt{5-postcorrection.py}}
-
-\subsection{\texttt{6-named.py}}
-
-\subsection{\texttt{7-virtualembryo.py}}
-
-
-
-
