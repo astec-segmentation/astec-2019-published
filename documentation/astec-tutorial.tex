@@ -27,7 +27,7 @@ the \texttt{RAWDATA/} and \texttt{parameters/} sub-directories and a
 
 \mbox{}
 \dirtree{%
-.1 path/to/experiment/.
+.1 path/to/tuto-astec1/.
 .2 RAWDATA/.
 .2 README.
 .2 parameters/.
@@ -103,19 +103,19 @@ done with
 
 \begin{itemize}
   \itemsep -1ex
-  \item the variable \texttt{PATH\_EMBRYO} is the path to the directory where
+  \item The variable \texttt{PATH\_EMBRYO} is the path to the directory where
     the directory \texttt{RAWDATA/} is located. It can be either relative (as in the
     above example) or
     global (it could have been \texttt{/path/to/astec/tutorial/tuto-astec1/}).
-  \item the variable \texttt{EN} is the prefix after which the result fusion images
+  \item The variable \texttt{EN} is the prefix after which the result fusion images
     will be named. 
-  \item the variables \texttt{begin} and \texttt{end} indicate respectively the
+  \item The variables \texttt{begin} and \texttt{end} set respectively the
     first and the last index of the input time points to be processed.
-  \item the variables \texttt{acquisition\_orientation} and \texttt{acquisition\_mirrors} are parameters
+  \item The variables \texttt{acquisition\_orientation} and \texttt{acquisition\_mirrors} are parameters
     describing the acquisition geometry.
-  \item the variable \texttt{acquisition\_resolution} is the voxel size (along the 3
+  \item The variable \texttt{acquisition\_resolution} is the voxel size (along the 3
     dimensions X, Y and Z).
-  \item the variable \texttt{target\_resolution} is the desired isotropic (the
+  \item The variable \texttt{target\_resolution} is the desired isotropic (the
     same along the 3 dimensions) voxel size for the result fusion images.
 \end{itemize}
 
@@ -123,7 +123,7 @@ After processing, a \texttt{FUSE/} directory has been created
 
 \mbox{}
 \dirtree{%
-.1 path/to/sample/.
+.1 path/to/tuto-astec1/.
 .2 FUSE/.
 .2 RAWDATA/.
 .2 README.
@@ -155,16 +155,16 @@ the processing.
 
 
 \section{Sequence intra-registration (or drift compensation) [1]}
-\label{sec:tutorial:intra:registration:1}
+\label{sec:tutorial:intra:registration:fuse}
 
 We assume that we are located in the directory
 \texttt{/path/to/astec/tutorial/tuto-astec1/}. Running the sequence intra-registration is
 done with
 \begin{code}{0.8}
-  \$ 1.5-intraregistration.py -p parameters/1.5-intraregistration-tutorial-parameters-1.py 
+  \$ 1.5-intraregistration.py -p parameters/1.5-intraregistration-tutorial-parameters-fuse.py 
 \end{code}
-\texttt{1.5-intraregistration-tutorial-parameters-1.py} being the
-dedicated parameter file  (figure \ref{fig:tutorial:parameter:intra:registration:1}).
+\texttt{1.5-intraregistration-tutorial-parameters-fuse.py} being the
+dedicated parameter file  (figure \ref{fig:tutorial:parameter:intra:registration:fuse}).
 
 \begin{figure}
 \begin{framed}
@@ -177,19 +177,19 @@ dedicated parameter file  (figure \ref{fig:tutorial:parameter:intra:registration
      6	end = 20
 \end{verbatim}
 \end{framed}
-\caption{\label{fig:tutorial:parameter:intra:registration:1} Tutorial
+\caption{\label{fig:tutorial:parameter:intra:registration:fuse} Tutorial
   parameter file for the sequence intra-registration step.}
 \end{figure}
 
 \begin{itemize}
   \itemsep -1ex
-  \item the variable \texttt{PATH\_EMBRYO} is the path to the directory where
+  \item The variable \texttt{PATH\_EMBRYO} is the path to the directory where
     the directory \texttt{FUSE/} is located. It can be either relative (as in the
     above example) or
     global (it could have been \texttt{/path/to/astec/tutorial/tuto-astec1/}).
-  \item the variable \texttt{EN} is the prefix after which the  images
+  \item The variable \texttt{EN} is the prefix after which the  images
     are named. 
-  \item the variables \texttt{begin} and \texttt{end} indicate respectively the
+  \item The variables \texttt{begin} and \texttt{end} set respectively the
     first and the last index of the input time points to be processed.
 \end{itemize}
 
@@ -197,7 +197,7 @@ After processing, a \texttt{INTRAREG/} directory has been created
 
 \mbox{}
 \dirtree{%
-.1 path/to/sample/.
+.1 path/to/tuto-astec1/.
 .2 FUSE/.
 .2 INTRAREG/.
 .2 RAWDATA/.
@@ -248,6 +248,10 @@ The \texttt{INTRAREG/} directory contains
   every fused image towards the reference one as well as the template
   image (an image large enough to including each fused images after
   resampling).
+
+  The template image \texttt{template\_t0-20.inr} is of size $422
+  \times 365 \times 410$ with a voxel size of 0.6 (the voxel size can
+  be set by the variable \texttt{intra\_registration\_resolution})
 \end{itemize}
 
 
@@ -284,13 +288,13 @@ dedicated parameter file  (figure \ref{fig:tutorial:parameter:mars}).
 
 \begin{itemize}
   \itemsep -1ex
-  \item the variable \texttt{PATH\_EMBRYO} is the path to the directory where
+  \item The variable \texttt{PATH\_EMBRYO} is the path to the directory where
     the directory \texttt{FUSE/} is located. It can be either relative (as in the
     above example) or
     global (it could have been \texttt{/path/to/astec/tutorial/tuto-astec1/}).
-  \item the variable \texttt{EN} is the prefix after which the  images
+  \item The variable \texttt{EN} is the prefix after which the  images
     are named. 
-  \item the variable \texttt{begin} indicates  the
+  \item The variable \texttt{begin} sets  the
     index of the first input time point (to be processed).
 \end{itemize}
 
@@ -298,7 +302,7 @@ After processing, a \texttt{SEG/} directory has been created
 
 \mbox{}
 \dirtree{%
-.1 path/to/sample/.
+.1 path/to/tuto-astec1/.
 .2 FUSE/.
 .2 INTRAREG/.
 .2 RAWDATA/.
@@ -390,15 +394,15 @@ dedicated parameter file  (figure \ref{fig:tutorial:parameter:manual:correction}
 
 \begin{itemize}
   \itemsep -1ex
-  \item the variable \texttt{PATH\_EMBRYO} is the path to the directory where
+  \item The variable \texttt{PATH\_EMBRYO} is the path to the directory where
     the directory \texttt{SEG/} is located. It can be either relative (as in the
     above example) or
     global (it could have been \texttt{/path/to/astec/tutorial/tuto-astec1/}).
-  \item the variable \texttt{EN} is the prefix after which the  images
+  \item The variable \texttt{EN} is the prefix after which the  images
     are named. 
-  \item the variable \texttt{begin} indicates  the
+  \item The variable \texttt{begin} set  the
     index of the first input time point (to be processed).
-  \item the variable \texttt{mancor\_mapping\_file} indicates the file
+  \item The variable \texttt{mancor\_mapping\_file} gives the file
     name containing the correction to be applied.
 \end{itemize}
 
@@ -420,314 +424,248 @@ the segmentation obtained at the previous step.
 
 
 
-
-
-
-
-
-
-
-
-
-
-  
-
-\pagebreak
-
-
-
-\section{Starting with a toy embryo}
-
-Say we have an embryo named \texttt{160708-Tutorial} with four time points (these are the four first time points of the embryo \texttt{160708-Aquila-St8}). Thus at the beginning, we only have the raw data in the \texttt{<EMBRYO>=160708-Tutorial} file tree structure.
-\dirtree{%
-.1 <EMBRYO>=160708-Tutorial.
-.2 RAWDATA.
-.3 LC.
-.4 Stack0000.
-.5 Cam\_Left\_00001.zip.
-.5 Cam\_Left\_00002.zip.
-.5 Cam\_Left\_00003.zip.
-.5 Cam\_Left\_00004.zip.
-.4 Stack0001.
-.5 Cam\_Left\_00001.zip.
-.5 Cam\_Left\_00002.zip.
-.5 Cam\_Left\_00003.zip.
-.5 Cam\_Left\_00004.zip.
-.3 RC.
-.4 Stack0000.
-.5 Cam\_Right\_00001.zip.
-.5 Cam\_Right\_00002.zip.
-.5 Cam\_Right\_00003.zip.
-.5 Cam\_Right\_00004.zip.
-.4 Stack0001.
-.5 Cam\_Right\_00001.zip.
-.5 Cam\_Right\_00002.zip.
-.5 Cam\_Right\_00003.zip.
-.5 Cam\_Right\_00004.zip.
-}
-
-
-
-
-
-
-
-
-
-
-\section{Fusing data}
-
-Let start by fusing data. I advised to create a \texttt{PARAMETERS} repository under the root \texttt{<EMBRYO>=160708-Tutorial} to store all the parameters file we will use. Then we copy there the \texttt{parameters.py} file and rename it as \texttt{parameters-fuse1.py}. I added \texttt{-fuse} to easily recognize it as a parameter file for fusing, and also add the numbering \texttt{1} to handle the case of several parameters files for fusing (if fusion parameters have to be changed for a few time points).
-
-\begin{code}{0.8}
-\$ cd /path/to/160708-Tutorial\\
-\$ mkdir PARAMETERS\\
-\$ cp /path/to/astec-package/parameters.py  PARAMETERS/parameters-fuse1.py
-\end{code}
-
-
-Then, this file \texttt{parameters-fuse1.py} is edited to be adapted to our experiment at hand. Here, the modification are as follows. Note that we only have the following changes with respect to the template version of the parameter file (see section \ref{sec:parameters:original}).
-
-\begin{verbatim}
-     ...
-     5	PATH_EMBRYO='/Users/greg/COLLABORATIONS/DIGEM/TUTO-ASTEC/160708-Tutorial'	
-     ...
-     9	EN='160708-Tutorial'			
-     ... 
-    16	EXP_FUSE='EXP1'	
-     ...
-    44	end=4   				 
-     ...
-    58	raw_ori = 'right' 				
-     ...
-    60	raw_resolution = (.21, .21, 1.) 
-     ...
-    68	raw_mirrors = True  			
-     ...
-\end{verbatim}
-
-We have then the following file tree.
-
-\dirtree{%
-.1 <EMBRYO>=160708-Tutorial.
-.2 RAWDATA.
-.3 \ldots .
-.2 PARAMETERS.
-.3 parameters-fuse1.py.
-}
-
-Now we can run the fusion
-
-\begin{code}{0.8}
-\$ cd /path/to/160708-Tutorial\\
-\$ 1-fuse.py -p PARAMETERS/parameters-fuse1.py 
-\end{code}
-
-After completion of the fusing stage, the tree structure is 
-\dirtree{%
-.1 <EMBRYO>=160708-Tutorial.
-.2 RAWDATA.
-.3 \ldots .
-.2 PARAMETERS.
-.3 \ldots .
-.2 FUSE.
-.3 FUSE\_EXP1.
-.4 1-fuse.log.
-.4 160708-Tutorial\_fuse\_t001.inr.
-.4 160708-Tutorial\_fuse\_t002.inr.
-.4 160708-Tutorial\_fuse\_t003.inr.
-.4 160708-Tutorial\_fuse\_t004.inr.
-.4 parameters-fuse1.py.
-}
-
-The folder \texttt{FUSE\_EXP1} not only contains the fused images, but also a copy of the parameter file (hence the importance that all parameter files have different names) as well as a \texttt{log} file (\texttt{1-fuse.log}) that keeps trace of all the Astec launched commands. However, it won't keep trace of the other commands (e.g. the user erases a file), thus it is still important to keep all this elsewhere.
-
-
-
-
-
-
-
-
-
-
-\section{Segmenting the first time point}
-
-The segmentation of the first time point consists in labeling each and every cell of the embryo. By convention, the background has the 1 label (0 is used when label images are resampled). Thus cell labels are always larger or equal than 2.
-
-Although any method can be used to obtain this segmentation, the script \texttt{2-mars.py} provide a means to use the \texttt{MARS} method \cite{fernandez:hal-00521491}.
-
-Again the parameter file \texttt{parameters.py} is copied  and renamed to eventually edit it. 
-
-
-\begin{code}{0.8}
-\$ cd /path/to/160708-Tutorial\\
-\$ cp /path/to/astec-package/parameters.py  PARAMETERS/parameters-seg-first1.py
-\end{code}
-
-
-
-Then, this file \texttt{parameters-seg-first1.py} is edited. The changes with respect to the template version of the parameter file (see section \ref{sec:parameters:original}) are
-
-\begin{verbatim}
-     ...
-     5	PATH_EMBRYO='/Users/greg/COLLABORATIONS/DIGEM/TUTO-ASTEC/160708-Tutorial'	
-     ...
-     9	EN='160708-Tutorial'			
-     ... 
-    16	EXP_FUSE='EXP1'	
-     ...
-    26	EXP_MARS='EXPMARS1'		
-     ...
-\end{verbatim}
-
-Note that the line \#16 indicates where to find the fused images.
-The segmentation is done through
-
-\begin{code}{0.8}
-\$ cd /path/to/160708-Tutorial\\
-\$ 2-mars.py -p PARAMETERS/parameters-seg-first1.py 
-\end{code}
-
-
-After completion of the segmentation stage, the tree structure is 
-\dirtree{%
-.1 <EMBRYO>=160708-Tutorial.
-.2 RAWDATA.
-.3 \ldots .
-.2 PARAMETERS.
-.3 \ldots .
-.2 FUSE.
-.3 FUSE\_EXP1.
-.4 \ldots .
-.2 SEG.
-.3 SEG\_EXPMARS1.
-.4 160708-Tutorial\_mars\_t001.inr.
-.4 2-mars.log.
-.4 parameters-seg-first1.py.
-}
-
-Note the name of the result image with the \texttt{\_mars} suffix. Such a naming convention is mandatory and has to be followed in case of segmentation by other means.
-
-
-
-
-
-
-
-
-
-
-\section{Correcting the first time point segmentation}
-
-As the sequence segmentation proceeds by propagation, the first segmentation must be cured. Under-segmentations may be corrected either by changing segmentation parameters and to relaunch the \texttt{2-mars.py}  script or by manual edition (then be careful not to use an already used label). Over-segmentations can be automatically corrected (after identification). They have to be listed into a file whom lines contains two numbers, the labels to be merged (more precisely, only the second label will be kept) . E.g.
-\begin{code}{0.8}
-43 54\\
-38 20
-\end{code}
-means that cells of labels 43 and 54 will be merged together (forming a cell of label 54), as well as cells of labels 38 and 20 (forming a cell of label 20).
-The file \texttt{/path/to/astec-package/mapping.txt} is a template for this merging.
-
-
-Again, copy the parameter template file, as well as the merging template file (cells to be merged have to identified beforehand).
-
-\begin{code}{0.8}
-\$ cd /path/to/160708-Tutorial\\
-\$ cp /path/to/astec-package/parameters.py PARAMETERS/parameters-seg-correction1.py \\
-\$ cp /path/to/astec-package/mapping.txt PARAMETERS/mancor\_mapping\_file.txt
-\end{code}
-
-and edit the two files. The second file contains only the two lines indicated above.
-The changes with respect to the template version of the parameter file are
-
-\begin{verbatim}
-     ...
-     5	PATH_EMBRYO='/Users/greg/COLLABORATIONS/DIGEM/TUTO-ASTEC/160708-Tutorial'	
-     ...
-     9	EN='160708-Tutorial'			
-     ... 
-    16	EXP_FUSE='EXP1'	
-     ...
-    26	EXP_MARS='EXPMARS1'		
-     ...
-    28	EXP_SEG='EXPSEG1'
-     ...
-   186	mancor_mapping_file='PARAMETERS/mancor_mapping_file.txt' 
-     ...
-\end{verbatim}
-
-Note that the line \#186 gives the (here relative) name of the file containing the cells to be merged. The \texttt{MARS} result is supposed to be found in the \texttt{SEG/EXPMARS1} folder (given by the variable \texttt{EXP\_MARS})  while the correction result will be placed into the \texttt{SEG/EXPSEG1} folder (given by the variable \texttt{EXP\_SEG})
-
-
-\begin{code}{0.8}
-\$ cd /path/to/160708-Tutorial\\
-\$ 3-manualcorrection.py -p PARAMETERS/parameters-seg-correction1.py 
-\end{code}
-
-After completion of this stage, we have:
-\dirtree{%
-.1 <EMBRYO>=160708-Tutorial.
-.2 RAWDATA.
-.3 \ldots .
-.2 PARAMETERS.
-.3 \ldots .
-.2 FUSE.
-.3 FUSE\_EXP1.
-.4 \ldots .
-.2 SEG.
-.3 SEG\_EXPMARS1.
-.4 \ldots .
-.3 SEG\_EXPSEG1.
-.4 160708-Tutorial\_seg\_t001.inr.
-.4 3-manualcorrection.log.
-.4 mancor\_mapping\_file.txt.
-.4 parameters-seg-correction1.py.
-}
-
-Note the name of the result image with the \texttt{\_seg} suffix.
-
-
-
-
-
-
-
-
-
-
 \section{Segmentation propagation}
 
-
+We assume that we are located in the directory
+\texttt{/path/to/astec/tutorial/tuto-astec1/}. Segmenting the first
+time point is
+done with
 \begin{code}{0.8}
-\$ cd /path/to/160708-Tutorial\\
-\$ cp /path/to/astec-package/parameters.py PARAMETERS/parameters-astec.py\\
+  \$ 4-astec.py -p parameters/4-astec-tutorial-parameters.py  
 \end{code}
+\texttt{4-astec-tutorial-parameters.py} being the
+dedicated parameter file  (figure \ref{fig:tutorial:parameter:astec}).
 
 
-
+\begin{figure}
+\begin{framed}
 \begin{verbatim}
-     ...
-     5	PATH_EMBRYO='/Users/greg/COLLABORATIONS/DIGEM/TUTO-ASTEC/160708-Tutorial'	
-     ...
-     9	EN='160708-Tutorial'			
-     ... 
-    16	EXP_FUSE='EXP1'		
-     ...
-    28	EXP_SEG='EXPSEG1'
-     ...
-    44	end=4   
-     ...
+     1	PATH_EMBRYO = '.'
+     2	
+     3	EN = '2019-Tutorial100'
+     4	
+     5	begin = 0
+     6	end = 20
+     7	delta = 1
+     8	raw_delay = 0
+     9	
+    10	## General parameters for segmentation propagation
+    11	
+    12	astec_sigma1 = 0.6  		
+    13	astec_sigma2 = 0.15 		
+    14	astec_h_min_min = 4
+    15	astec_h_min_max = 18   		
+    16	
+    17	## Glace Parameters (if astec_membrane_reconstruction_method is set to 1 or 2):
+    18	## membrane_renforcement
+    19	
+    20	astec_sigma_membrane = 0.9
+    21	astec_sensitivity = 0.99  
+    22	astec_manual = False     	
+    23	astec_manual_sigma = 15   
+    24	astec_hard_thresholding = False 
+    25	astec_hard_threshold = 1.0      
+    26	
+    27	## Tensor voting framework
+    28	
+    29	astec_sigma_TV = 3.6    
+    30	astec_sigma_LF = 0.9    
+    31	astec_sample = 0.2      
+    32	
+    33	## Default parameters (for classical use, default values should not be changed)
+    34	
+    35	astec_RadiusOpening = 20 		
+    36	astec_Thau = 25 				
+    37	astec_MinVolume = 1000 		
+    38	astec_VolumeRatioBigger = 0.5 
+    39	astec_VolumeRatioSmaller = 0.1
+    40	astec_MorphosnakeIterations = 10 
+    41	astec_NIterations = 200 		
+    42	astec_DeltaVoxels = 10**3  	
+    43	astec_nb_proc = 10
 \end{verbatim}
+\end{framed}
+\caption{\label{fig:tutorial:parameter:astec} Tutorial
+  parameter file for the segmentation propagation.}
+\end{figure}
 
+After processing,the \texttt{SEG/} directory contains
 
+\mbox{}
+\dirtree{%
+.1 SEG/.
+.2 SEG\_RELEASE/.
+.3 2019-Tutorial100\_mars\_t000.inr.
+.3 2019-Tutorial100\_seg\_t000.inr.
+.3 2019-Tutorial100\_seg\_t001.inr.
+.3 \ldots.
+.3 2019-Tutorial100\_seg\_t020.inr.
+.3 LOGS/.
+.3 RECONSTRUCTION/.
+}
+\mbox{}
 
+while a \texttt{2019-Tutorial100\_seg\_lineage.pkl} file has been
+created in the \texttt{path/to/tuto-astec1/} directory.
+
+\mbox{}
+\dirtree{%
+.1 path/to/tuto-astec1/.
+.2 2019-Tutorial100\_seg\_lineage.pkl.
+.2 FUSE/.
+.2 INTRAREG/.
+.2 RAWDATA/.
+.2 README.
+.2 SEG/.
+.2 parameters/.
+}
+\mbox{}
+
+\texttt{2019-Tutorial100\_seg\_lineage.pkl} is a pickle python file
+containing a dictionary (in the python sense). It can be read by
 \begin{code}{0.8}
-\$ cd /path/to/160708-Tutorial\\
-\$ 4-astec.py -p PARAMETERS/parameters-astec.py 
+  \$ python \\
+  \ldots \\
+  >>> import cPickle as pkl \\
+  >>> f=open('2019-Tutorial100\_seg\_lineage.pkl') \\
+  >>> d=pkl.load(f) \\
+  >>> f.close()  \\
+  >>> d.keys() \\{}
+  ['h\_mins\_information', 'lin\_tree', 'volumes\_information', 'sigmas\_information']
 \end{code}
+In this pickle file, cells have an unique identifier $i * 1000 + c$, which is made of
+both the image index $i$ and the cell identifier $c$ within a segmentation
+image (recall that cells are numbered from 2, 1 being the background
+label).
 
 
+\section{Sequence intra-registration (or drift compensation) [2]}
+\label{sec:tutorial:intra:registration:seg}
 
+We assume that we are located in the directory
+\texttt{/path/to/astec/tutorial/tuto-astec1/}. Running the sequence intra-registration is
+done with
+\begin{code}{0.8}
+  \$ 1.5-intraregistration.py -p parameters/1.5-intraregistration-tutorial-parameters-seg.py 
+\end{code}
+\texttt{1.5-intraregistration-tutorial-parameters-seg.py} being the
+dedicated parameter file  (figure \ref{fig:tutorial:parameter:intra:registration:seg}).
 
+\begin{figure}
+\begin{framed}
+\begin{verbatim}
+     1	PATH_EMBRYO = '.'
+     2	
+     3	EN = '2019-Tutorial100'
+     4	
+     5	begin = 0
+     6	end = 20
+     7	
+     8	EXP_INTRAREG = 'SEG'
+     9	
+    10	intra_registration_template_type = "SEGMENTATION"
+    11	intra_registration_template_threshold = 2
+    12	intra_registration_margin = 20
+    13	
+    14	intra_registration_resample_segmentation_images = True
+    15	intra_registration_movie_segmentation_images = True
+\end{verbatim}
+\end{framed}
+\caption{\label{fig:tutorial:parameter:intra:registration:seg} Tutorial
+  parameter file for the sequence intra-registration step,
+  segmentation images being used to build the template.}
+\end{figure}
 
+\begin{itemize}
+  \itemsep -1ex
+  \item The variable \texttt{PATH\_EMBRYO} is the path to the directory where
+    the directory \texttt{FUSE/} is located. It can be either relative (as in the
+    above example) or
+    global (it could have been \texttt{/path/to/astec/tutorial/tuto-astec1/}).
+  \item The variable \texttt{EN} is the prefix after which the  images
+    are named. 
+  \item The variables \texttt{begin} and \texttt{end} set respectively the
+    first and the last index of the input time points to be processed.
+  \item  the variable \texttt{EXP\_INTRAREG} set the suffix of the
+    sub-directory of the \texttt{INTRAREG/} directory to be created.
+  \item  the variable \texttt{intra\_registration\_template\_type} set
+    the images to be used to build the template. Here, since it is
+    equal to \texttt{"SEGMENTATION''}, they are the
+    segmentation images obtained at the previous step.
 
+    The variable \texttt{intra\_registration\_template\_threshold} set
+    a threshold to be applied to the template images to define the
+    information to be kept: we want all the points with a value equal
+    or greater than 2 to be contained in the template after
+    resampling. Since cells are labeled from 2 and above, the template
+    is designed to contain all labeled cells after resampling, so it
+    is built as small as possible.
+
+    The variable \texttt{intra\_registration\_margin} allows to add
+    margins (in the 3 dimensions) to the built template.
+    
+  \item The variable
+    \texttt{intra\_registration\_resample\_segmentation\_images}
+    indicates whether the segmentation images are to be resampled in
+    the template geometry. 
+  \item The variable
+    \texttt{intra\_registration\_movie\_segmentation\_images}
+    indicates whether 2D+t movies have to be built from the resampled
+    segmentation images.
+\end{itemize}
+
+After processing, a \texttt{INTRAREG/INTRAREG\_SEG/} directory has
+been created and the \texttt{INTRAREG/} directory now contains
+
+\mbox{}
+\dirtree{%
+.1 INTRAREG/.
+.2 INTRAREG\_RELEASE/.
+.3 \ldots.
+.2 INTRAREG\_SEG/.
+.3 CO-TRSFS/.
+.4 2019-Tutorial100\_intrareg\_flo000\_ref001.trsf.
+.4 \ldots.
+.4 2019-Tutorial100\_intrareg\_flo019\_ref020.trsf.
+.3 FUSE/.
+.4 2019-Tutorial100\_intrareg\_fuse\_t000.inr.
+.4 \ldots.
+.4 2019-Tutorial100\_intrareg\_fuse\_t020.inr.
+.3 LOGS/.
+.3 MOVIES/.
+.4 2019-Tutorial100\_intrareg\_fuse\_t0-20\_xy174.inr.
+.4 2019-Tutorial100\_intrareg\_seg\_t0-20\_xy174.inr.
+.3 SEG/.
+.4 2019-Tutorial100\_intrareg\_seg\_t000.inr.
+.4 \ldots.
+.4 2019-Tutorial100\_intrareg\_seg\_t020.inr.
+.3 TRSFS\_t0-20/.
+.4 2019-Tutorial100\_intrareg\_t000.trsf.
+.4 \ldots.
+.4 2019-Tutorial100\_intrareg\_t020.trsf.
+.4 template\_t0-20.inr.
+}
+\mbox{}
+
+In addition to directories already described in section
+\ref{sec:tutorial:intra:registration:fuse}, the \texttt{INTRAREG\_SEG/} directory contains
+\begin{itemize}
+\itemsep -1ex
+\item The directory \texttt{SEG/} contains the resampled segmentation images
+  in the same geometry (images have the same dimensions along X, Y and
+  Z), with drift compensation (the eventual motion of the sample under the
+  microscope has been compensated). 
+\item In addition to a 2D+t movie made from the resampled fusion
+  images, the directory \texttt{MOVIES/} contains a 2D+t movie made from the resampled segmentation
+  images.
+\item The template image \texttt{template\_t0-20.inr} in the directory
+  \texttt{TRSFS/} 
+  is now of size $323 \times 265 \times 348$ with a voxel size of 0.6,
+  which is smaller than the one computed in section
+  \ref{sec:tutorial:intra:registration:fuse}, even with the added
+  margins.
+  
+  Note that all resampled images (in both the \texttt{FUSE/} and the
+  \texttt{SEG/} directories have the same geometry than the template
+  image. 
+\end{itemize}

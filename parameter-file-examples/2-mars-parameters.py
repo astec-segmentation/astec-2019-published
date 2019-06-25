@@ -63,8 +63,7 @@ begin = 0
 
 ## ##### explanation #####
 ##
-## Mars segmentation results will be stored in 'PATH_EMBRYO'/SEG/SEG_'EXP_SEG'
-## (Mars is a seeded watershed procedure)
+## Segmentation results will be stored in 'PATH_EMBRYO'/SEG/SEG_'EXP_SEG'
 ## default value is
 ## EXP_SEG = 'RELEASE'
 ##
@@ -92,6 +91,8 @@ begin = 0
 ## mars parameters
 ##
 ######################################################################
+
+
 
 # mars_begin = -1
 # mars_end = -1
