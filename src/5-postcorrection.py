@@ -166,7 +166,8 @@ lin_tree_cor, new_volumes, to_fuse, been_fused=\
 ### APPLYING THE CORRECTION ON THE IMAGES
 apply_cell_fusion(lin_tree_information['lin_tree'], \
 	   lin_tree_information['volumes_information'], \
-	   to_fuse,path_seg_exp_files,path_post_exp_files,p.begin+p.raw_delay, \
+	   to_fuse,os.path.join(path_seg_exp,path_seg_exp_files), \
+                  os.path.join(path_post_exp,path_post_exp_files),p.begin+p.raw_delay, \
 	   p.end+p.raw_delay, p.delta)
 
 #SAVE THE NEW LINEAGE TREE

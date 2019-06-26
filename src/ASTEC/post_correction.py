@@ -8,7 +8,12 @@ import numpy as np
 from copy import copy,deepcopy
 from ImageHandling import imread, imsave, SpatialImage
 import pickle as pkl
-from lineage import read_lineage_tree,write_lineage_tree,timeNamed,timesNamed
+from lineage import read_lineage_tree,write_lineage_tree,timesNamed
+
+def timeNamed(filename, time):
+    time_point = ('00' + str(time))[-3:]  # Format time on 3 digit
+    return filename.replace('$TIME', time_point)+".inr"
+
 
 def fuse_cells(couple, lin_tree, bb, im, t):
     """

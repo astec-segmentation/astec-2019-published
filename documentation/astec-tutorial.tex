@@ -406,7 +406,7 @@ dedicated parameter file  (figure \ref{fig:tutorial:parameter:manual:correction}
     name containing the correction to be applied.
 \end{itemize}
 
-After processing,the \texttt{SEG/} directory contains
+After processing, the \texttt{SEG/} directory contains
 
 \mbox{}
 \dirtree{%
@@ -435,7 +435,6 @@ done with
 \end{code}
 \texttt{4-astec-tutorial-parameters.py} being the
 dedicated parameter file  (figure \ref{fig:tutorial:parameter:astec}).
-
 
 \begin{figure}
 \begin{framed}
@@ -489,17 +488,19 @@ dedicated parameter file  (figure \ref{fig:tutorial:parameter:astec}).
   parameter file for the segmentation propagation.}
 \end{figure}
 
-After processing,the \texttt{SEG/} directory contains
+After processing, the \texttt{SEG/} directory contains
 
 \mbox{}
 \dirtree{%
 .1 SEG/.
 .2 SEG\_RELEASE/.
 .3 2019-Tutorial100\_mars\_t000.inr.
+.3 2019-Tutorial100\_seg\_lineage.test.
 .3 2019-Tutorial100\_seg\_t000.inr.
 .3 2019-Tutorial100\_seg\_t001.inr.
 .3 \ldots.
 .3 2019-Tutorial100\_seg\_t020.inr.
+.3 4-astec-tutorial-parameters.py.
 .3 LOGS/.
 .3 RECONSTRUCTION/.
 }
@@ -537,6 +538,7 @@ In this pickle file, cells have an unique identifier $i * 1000 + c$, which is ma
 both the image index $i$ and the cell identifier $c$ within a segmentation
 image (recall that cells are numbered from 2, 1 being the background
 label).
+
 
 
 \section{Sequence intra-registration (or drift compensation) [2]}
@@ -669,3 +671,70 @@ In addition to directories already described in section
   \texttt{SEG/} directories have the same geometry than the template
   image. 
 \end{itemize}
+
+
+
+\section{Segmentation post-correction}
+
+We assume that we are located in the directory
+\texttt{/path/to/astec/tutorial/tuto-astec1/}. Segmentation post-correction is
+done with
+\begin{code}{0.8}
+  \$ 5-postcorrection.py -p parameters/5-postcorrection-tutorial-parameters.py 
+\end{code}
+\texttt{5-postcorrection-tutorial-parameters.py } being the
+dedicated parameter file  (figure
+\ref{fig:tutorial:parameter:post:correction}).
+
+
+\begin{figure}
+\begin{framed}
+\begin{verbatim}
+     1	PATH_EMBRYO = '.'
+     2	
+     3	EN = '2019-Tutorial100'
+     4	
+     5	begin = 0
+     6	end = 20
+     7	delta = 1
+     8	raw_delay = 0
+     9	
+    10	postcor_Volume_Threshold=10000 	
+    11	postcor_Soon=True 				
+\end{verbatim}
+\end{framed}
+\caption{\label{fig:tutorial:parameter:post:correction} Tutorial
+  parameter file for the segmentation propagation.}
+\end{figure}
+
+After processing, a \texttt{POST/} directory has been created
+
+\mbox{}
+\dirtree{%
+.1 path/to/tuto-astec1/.
+.2 2019-Tutorial100\_seg\_lineage.pkl.
+.2 FUSE/.
+.2 INTRAREG/.
+.2 POST/.
+.2 RAWDATA/.
+.2 README.
+.2 SEG/.
+.2 parameters/.
+}
+\mbox{}
+
+The \texttt{POST/} directory contains
+
+\mbox{}
+\dirtree{%
+.1 POST/.
+.2 POST\_RELEASE/.
+.3 2019-Tutorial100\_post\_lineage.pkl.
+.3 2019-Tutorial100\_post\_lineage.test.
+.3 2019-Tutorial100\_post\_t000.inr.
+.3 \ldots.
+.3 2019-Tutorial100\_post\_t020.inr.
+.3 5-postcorrection-tutorial-parameters.py.
+.3 5-postcorrection.log.
+}
+\mbox{}
