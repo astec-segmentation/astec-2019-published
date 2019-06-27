@@ -5,7 +5,12 @@ src/ASTEC/CommunFunctions/ImageHandling.zip
 
 # astec generated files #
 #########################
+*.pkl
+FUSE
+INTRAREG
 LOGS
+POST
+SEG
 
 # Compiled source #
 ###################

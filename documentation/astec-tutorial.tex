@@ -738,3 +738,155 @@ The \texttt{POST/} directory contains
 .3 5-postcorrection.log.
 }
 \mbox{}
+
+
+
+\section{Sequence intra-registration (or drift compensation) [3]}
+\label{sec:tutorial:intra:registration:post}
+
+We assume that we are located in the directory
+\texttt{/path/to/astec/tutorial/tuto-astec1/}. Running the sequence intra-registration is
+done with
+\begin{code}{0.8}
+  \$ 1.5-intraregistration.py -p parameters/1.5-intraregistration-tutorial-parameters-post.py 
+\end{code}
+\texttt{1.5-intraregistration-tutorial-parameters-post.py} being the
+dedicated parameter file  (figure \ref{fig:tutorial:parameter:intra:registration:post}).
+
+\begin{figure}
+\begin{framed}
+\begin{verbatim}
+     1	PATH_EMBRYO = '.'
+     2	
+     3	EN = '2019-Tutorial100'
+     4	
+     5	begin = 0
+     6	end = 20
+     7	
+     8	EXP_INTRAREG = 'POST'
+     9	
+    10	intra_registration_template_type = "POST-SEGMENTATION"
+    11	intra_registration_template_threshold = 2
+    12	intra_registration_margin = 20
+    13	
+    14	intra_registration_resample_post_segmentation_images = True
+    15	intra_registration_resample_segmentation_images = True
+    16	intra_registration_movie_post_segmentation_images = True
+    17	intra_registration_movie_segmentation_images = True
+\end{verbatim}
+\end{framed}
+\caption{\label{fig:tutorial:parameter:intra:registration:post} Tutorial
+  parameter file for the sequence intra-registration step,
+  post-segmentation images being used to build the template.}
+\end{figure}
+
+\begin{itemize}
+  \itemsep -1ex
+  \item The variable \texttt{PATH\_EMBRYO} is the path to the directory where
+    the directory \texttt{FUSE/} is located. It can be either relative (as in the
+    above example) or
+    global (it could have been \texttt{/path/to/astec/tutorial/tuto-astec1/}).
+  \item The variable \texttt{EN} is the prefix after which the  images
+    are named. 
+  \item The variables \texttt{begin} and \texttt{end} set respectively the
+    first and the last index of the input time points to be processed.
+  \item  the variable \texttt{EXP\_INTRAREG} set the suffix of the
+    sub-directory of the \texttt{INTRAREG/} directory to be created.
+  \item  the variable \texttt{intra\_registration\_template\_type} set
+    the images to be used to build the template. Here, since it is
+    equal to \texttt{"POST-SEGMENTATION''}, they are the
+    post-corrected segmentation images obtained at the previous step.
+
+    The variable \texttt{intra\_registration\_template\_threshold} set
+    a threshold to be applied to the template images to define the
+    information to be kept: we want all the points with a value equal
+    or greater than 2 to be contained in the template after
+    resampling. Since cells are labeled from 2 and above, the template
+    is designed to contain all labeled cells after resampling, so it
+    is built as small as possible.
+
+    The variable \texttt{intra\_registration\_margin} allows to add
+    margins (in the 3 dimensions) to the built template.
+    
+  \item The variable
+    \texttt{intra\_registration\_resample\_post\_segmentation\_images}
+    indicates whether the post-corrected segmentation images are to be resampled in
+    the template geometry. 
+  \item The variable
+    \texttt{intra\_registration\_resample\_segmentation\_images}
+    indicates whether the segmentation images are to be resampled in
+    the template geometry. 
+  \item The variable
+    \texttt{intra\_registration\_movie\_post\_segmentation\_images}
+    indicates whether 2D+t movies have to be built from the resampled
+    post-corrected segmentation images.
+  \item The variable
+    \texttt{intra\_registration\_movie\_segmentation\_images}
+    indicates whether 2D+t movies have to be built from the resampled
+    segmentation images.
+\end{itemize}
+
+After processing, a \texttt{INTRAREG/INTRAREG\_POST/} directory has
+been created and the \texttt{INTRAREG/} directory now contains
+
+\mbox{}
+\dirtree{%
+.1 INTRAREG/.
+.2 INTRAREG\_POST/.
+.3 CO-TRSFS/.
+.4 2019-Tutorial100\_intrareg\_flo000\_ref001.trsf.
+.4 \ldots.
+.4 2019-Tutorial100\_intrareg\_flo019\_ref020.trsf.
+.3 FUSE/.
+.4 2019-Tutorial100\_intrareg\_fuse\_t000.inr.
+.4 \ldots.
+.4 2019-Tutorial100\_intrareg\_fuse\_t020.inr.
+.3 LOGS/.
+.3 MOVIES/.
+.4 2019-Tutorial100\_intrareg\_fuse\_t0-20\_xy174.inr.
+.4 2019-Tutorial100\_intrareg\_post\_t0-20\_xy174.inr.
+.4 2019-Tutorial100\_intrareg\_seg\_t0-20\_xy174.inr.
+.3 POST/.
+.4 2019-Tutorial100\_intrareg\_post\_t000.inr.
+.4 \ldots.
+.4 2019-Tutorial100\_intrareg\_post\_t020.inr.
+.3 SEG/.
+.4 2019-Tutorial100\_intrareg\_seg\_t000.inr.
+.4 \ldots.
+.4 2019-Tutorial100\_intrareg\_seg\_t020.inr.
+.3 TRSFS\_t0-20/.
+.4 2019-Tutorial100\_intrareg\_t000.trsf.
+.4 \ldots.
+.4 2019-Tutorial100\_intrareg\_t020.trsf.
+.4 template\_t0-20.inr.
+.2 INTRAREG\_RELEASE/.
+.3 \ldots.
+.2 INTRAREG\_SEG/.
+.3 \ldots.
+}
+\mbox{}
+
+In addition to directories already described in section
+\ref{sec:tutorial:intra:registration:fuse}, the \texttt{INTRAREG\_POST/} directory contains
+\begin{itemize}
+\itemsep -1ex
+\item The directory \texttt{POST/} contains the resampled
+  post-corrected segmentation images
+  in the same geometry (images have the same dimensions along X, Y and
+  Z), with drift compensation (the eventual motion of the sample under the
+  microscope has been compensated). 
+\item In addition to a 2D+t movie made from the resampled fusion
+  and the segmentation images, the directory \texttt{MOVIES/} contains
+  a 2D+t movie made from the resampled post-corrected segmentation
+  images.
+\item The template image \texttt{template\_t0-20.inr} in the directory
+  \texttt{TRSFS/} 
+  is now of size $323 \times 265 \times 348$ with a voxel size of 0.6,
+  has the same size than the one computed in section
+  \ref{sec:tutorial:intra:registration:seg},  which is expected since
+  the post-correction does not change the background.
+  Note that all resampled images (in the \texttt{FUSE/}, the
+  \texttt{POST/}, and the
+  \texttt{SEG/} directories have the same geometry than the template
+  image. 
+\end{itemize}
