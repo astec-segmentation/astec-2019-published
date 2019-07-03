@@ -145,12 +145,12 @@ The \texttt{FUSE/} directory contains
 
 The fused images are named after \texttt{<EN>\_fuse\t<XXX>.inr} (where \texttt{<XXX>}
 denotes the value of the variable \texttt{XXX}) and indexed from
-\texttt{<begin>} to \texttt{<end>} (as the input data). The directory \texttt{LOGS/} contains
+\texttt{<begin>} to \texttt{<end>} (as the input data).
+
+The directory \texttt{LOGS/} contains
 a copy of the parameter file (stamped with date and hour) as well as a
 log file (also stamped with date and hour) reporting information about
 the processing.
-
-
 
 
 
@@ -425,6 +425,7 @@ the segmentation obtained at the previous step.
 
 
 \section{Segmentation propagation}
+\label{sec:tutorial:segmentation:propagation}
 
 We assume that we are located in the directory
 \texttt{/path/to/astec/tutorial/tuto-astec1/}. Segmenting the first
@@ -536,7 +537,7 @@ containing a dictionary (in the python sense). It can be read by
 \end{code}
 In this pickle file, cells have an unique identifier $i * 1000 + c$, which is made of
 both the image index $i$ and the cell identifier $c$ within a segmentation
-image (recall that cells are numbered from 2, 1 being the background
+image (recall that, within an image, cells are numbered from 2, 1 being the background
 label).
 
 
@@ -673,6 +674,155 @@ In addition to directories already described in section
 \end{itemize}
 
 
+\section{Sequence properties computation [1]}
+\label{sec:tutorial:properties:seg}
+
+We assume that we are located in the directory
+\texttt{/path/to/astec/tutorial/tuto-astec1/}.
+Computing cell properties as well as lineage assumes that
+ segmentation or post-corrected segmentation (see section
+\ref{sec:tutorial:properties:post}) images have been
+co-registered (see sections \ref{sec:tutorial:intra:registration:seg}
+and \ref{sec:tutorial:intra:registration:post}). 
+Extracting the sequence properties from the co-registered segmentation
+images is
+done with
+\begin{code}{0.8}
+  \$ X-embryoproperties.py -p parameters/X-embryoproperties-tutorial-parameters-seg.py
+\end{code}
+\texttt{X-embryoproperties-tutorial-parameters-seg.py} being the
+dedicated parameter file  (figure \ref{fig:tutorial:parameter:properties:seg}).
+
+\begin{figure}
+\begin{framed}
+\begin{verbatim}
+     1	PATH_EMBRYO = '.'
+     2	
+     3	EN = '2019-Tutorial100'
+     4	
+     5	begin = 0
+     6	end = 20
+     7	
+     8	EXP_INTRAREG = 'SEG'
+\end{verbatim}
+\end{framed}
+\caption{\label{fig:tutorial:parameter:properties:seg} Tutorial
+  parameter file for the sequence properties from the co-registered
+  segmentation images.}
+\end{figure}
+
+\begin{itemize}
+  \itemsep -1ex
+  \item The variable \texttt{PATH\_EMBRYO} is the path to the directory where
+    the directory \texttt{FUSE/} is located. It can be either relative (as in the
+    above example) or
+    global (it could have been \texttt{/path/to/astec/tutorial/tuto-astec1/}).
+  \item The variable \texttt{EN} is the prefix after which the  images
+    are named. 
+  \item The variables \texttt{begin} and \texttt{end} set respectively the
+    first and the last index of the input time points to be processed.
+  \item  the variable \texttt{EXP\_INTRAREG} set the suffix of the
+    sub-directory of the \texttt{INTRAREG/} directory where to search
+    post-corrected segmentation or segmentation images.
+
+    Since the directory \texttt{INTRAREG/INTRAREG\_SEG/} does only
+    contains the co-registered segmentation images (in the
+    \texttt{SEG/} sub-directory), properties will be computed from
+    these images.
+\end{itemize}
+
+After processing, some files appears in the \texttt{INTRAREG/INTRAREG\_SEG/SEG/} sub-directory 
+
+\mbox{}
+\dirtree{%
+.1 INTRAREG/.
+.2 INTRAREG\_RELEASE/.
+.3 \ldots.
+.2 INTRAREG\_SEG/.
+.3 CO-TRSFS/.
+.4 \ldots.
+.3 FUSE/.
+.4 \ldots.
+.3 LOGS/.
+.3 MOVIES/.
+.4 \ldots.
+.3 SEG/.
+.4 2019-Tutorial100\_intrareg\_seg\_lineage.pkl.
+.4 2019-Tutorial100\_intrareg\_seg\_lineage.txt.
+.4 2019-Tutorial100\_intrareg\_seg\_lineage.xml.
+.4 2019-Tutorial100\_intrareg\_seg\_t000.inr.
+.4 \ldots.
+.4 2019-Tutorial100\_intrareg\_seg\_t020.inr.
+.3 TRSFS\_t0-20/.
+.4 \ldots.
+}
+\mbox{}
+
+
+\texttt{2019-Tutorial100\_intrareg\_seg\_lineage.pkl} is a pickle python file
+containing a dictionary (in the python sense). It can be read by
+\begin{code}{0.8}
+  \$ python \\
+  \ldots \\
+  >>> import cPickle as pkl \\
+  >>> f=open('2019-Tutorial100\_intrareg\_seg\_lineage.pkl') \\
+  >>> d=pkl.load(f) \\
+  >>> f.close()  \\
+  >>> d.keys() \\{}
+  ['all\_cells', 'cell\_barycenter', 'cell\_contact\_surface', 'cell\_principal\_vectors', 'cell\_principal\_values', 'cell\_volume', 'cell\_compactness', 'cell\_surface', 'cell\_lineage']
+\end{code}
+In this pickle file (as in the one computed at section
+\ref{sec:tutorial:segmentation:propagation}), cells have an unique
+identifier $i * 1000 + c$, which is made of 
+both the image index $i$ and the cell identifier $c$ within a segmentation
+image (recall that cells are numbered from 2, 1 being the background
+label).
+
+\texttt{2019-Tutorial100\_intrareg\_seg\_lineage.xml} contains the
+same information than the pickle file, but in xml format (see figure
+\ref{fig:tutorial:seg:properties:xml}).
+
+\begin{figure}
+\begin{framed}
+\begin{verbatim}
+<data>
+  <cell_volume>
+    ...
+  </cell_volume>
+  <cell_surface>
+     ...
+  </cell_surface>
+  <cell_compactness>
+     ...
+  </cell_compactness>
+  <cell_barycenter>
+     ...
+  </cell_barycenter>
+  <cell_principal_values>
+     ...
+  </cell_principal_values>
+  <cell_principal_vectors>
+     ...
+  </cell_principal_vectors>
+  <cell_contact_surface>
+     ...
+  </cell_contact_surface>
+  <all_cells>[2, 3, 4, 5, 6, 7, 8, 11, 12, 13, 
+     ...
+     200097, 200099, 200100, 200101, 200102]</all_cells>
+  <cell_lineage>
+     ...
+  </cell_lineage>
+</data>
+\end{verbatim}
+\end{framed}
+\caption{\label{fig:tutorial:seg:properties:xml} XML output properties
+  file from the co-registered segmentation image.}
+\end{figure}
+
+\texttt{2019-Tutorial100\_intrareg\_seg\_lineage.tst} contains some
+\textit{diagnosis} information (smallest and largest cells, weird
+lineages, etc.). 
 
 \section{Segmentation post-correction}
 
@@ -704,7 +854,7 @@ dedicated parameter file  (figure
 \end{verbatim}
 \end{framed}
 \caption{\label{fig:tutorial:parameter:post:correction} Tutorial
-  parameter file for the segmentation propagation.}
+  parameter file for the segmentation post-correction.}
 \end{figure}
 
 After processing, a \texttt{POST/} directory has been created
@@ -743,7 +893,7 @@ The \texttt{POST/} directory contains
 
 \section{Sequence intra-registration (or drift compensation) [3]}
 \label{sec:tutorial:intra:registration:post}
-
+ 
 We assume that we are located in the directory
 \texttt{/path/to/astec/tutorial/tuto-astec1/}. Running the sequence intra-registration is
 done with
@@ -890,3 +1040,97 @@ In addition to directories already described in section
   \texttt{SEG/} directories have the same geometry than the template
   image. 
 \end{itemize}
+
+
+
+\section{Sequence properties computation [2]}
+\label{sec:tutorial:properties:post}
+
+We assume that we are located in the directory
+\texttt{/path/to/astec/tutorial/tuto-astec1/}.
+Computing cell properties as well as lineage assumes that
+ segmentation or post-corrected segmentation (see section
+\ref{sec:tutorial:properties:post}) images have been
+co-registered (see sections \ref{sec:tutorial:intra:registration:seg}
+and \ref{sec:tutorial:intra:registration:post}). 
+Extracting the sequence properties from the co-registered segmentation
+images is
+done with
+\begin{code}{0.8}
+  \$ X-embryoproperties.py -p parameters/X-embryoproperties-tutorial-parameters-post.py
+\end{code}
+\texttt{X-embryoproperties-tutorial-parameters-post.py} being the
+dedicated parameter file  (figure \ref{fig:tutorial:parameter:properties:post}).
+
+\begin{figure}
+\begin{framed}
+\begin{verbatim}
+     1	PATH_EMBRYO = '.'
+     2	
+     3	EN = '2019-Tutorial100'
+     4	
+     5	begin = 0
+     6	end = 20
+     7	
+     8	EXP_INTRAREG = 'POST'
+\end{verbatim}
+\end{framed}
+\caption{\label{fig:tutorial:parameter:properties:post} Tutorial
+  parameter file for the sequence properties from the co-registered
+  post-corrected segmentation images.}
+\end{figure}
+
+\begin{itemize}
+  \itemsep -1ex
+  \item The variable \texttt{PATH\_EMBRYO} is the path to the directory where
+    the directory \texttt{FUSE/} is located. It can be either relative (as in the
+    above example) or
+    global (it could have been \texttt{/path/to/astec/tutorial/tuto-astec1/}).
+  \item The variable \texttt{EN} is the prefix after which the  images
+    are named. 
+  \item The variables \texttt{begin} and \texttt{end} set respectively the
+    first and the last index of the input time points to be processed.
+  \item  the variable \texttt{EXP\_INTRAREG} set the suffix of the
+    sub-directory of the \texttt{INTRAREG/} directory where to search
+    post-corrected segmentation or segmentation images.
+
+    Since the directory \texttt{INTRAREG/INTRAREG\_POST/} does only
+    contains the co-registered post-corrected segmentation images (in the
+    \texttt{POST/} sub-directory), properties will be computed from
+    these images preferably to the co-registered segmentation images (in the
+    \texttt{SEG/} sub-directory).
+\end{itemize}
+
+After processing, some files appears in the \texttt{INTRAREG/INTRAREG\_POST/POST/} sub-directory 
+
+\mbox{}
+\dirtree{%
+.1 INTRAREG/.
+.2 INTRAREG\_RELEASE/.
+.3 \ldots.
+.2 INTRAREG\_SEG/.
+.3 CO-TRSFS/.
+.4 \ldots.
+.3 FUSE/.
+.4 \ldots.
+.3 LOGS/.
+.3 MOVIES/.
+.4 \ldots.
+.3 POST/.
+.4 2019-Tutorial100\_intrareg\_post\_lineage.pkl.
+.4 2019-Tutorial100\_intrareg\_post\_lineage.txt.
+.4 2019-Tutorial100\_intrareg\_post\_lineage.xml.
+.4 2019-Tutorial100\_intrareg\_post\_t000.inr.
+.4 \ldots.
+.4 2019-Tutorial100\_intrareg\_post\_t020.inr.
+.3 SEG/.
+.4 2019-Tutorial100\_intrareg\_seg\_t000.inr.
+.4 \ldots.
+.4 2019-Tutorial100\_intrareg\_seg\_t020.inr.
+.3 TRSFS\_t0-20/.
+.4 \ldots.
+}
+\mbox{}
+
+Those files have the same meaning than the ones already presented in
+section \ref{sec:tutorial:properties:seg}.

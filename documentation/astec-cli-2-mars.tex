@@ -44,8 +44,8 @@ default value is '\texttt{RELEASE}').
 \dirtree{%
 .1 /path/to/experiment/.
 .2 \ldots.
-.2 SEG.
-.3 SEG\_<EXP\_SEG>.
+.2 SEG/.
+.3 SEG\_<EXP\_SEG>/.
 .4 <EN>\_mars\_t<begin>.inr.
 .4 LOGS/.
 .4 RECONSTRUCTION/.
@@ -69,7 +69,9 @@ Each of these variables, if not \texttt{None}, induce a transformation of the in
 \itemsep -1ex
 \item \texttt{mars\_intensity\_transformation = 'Identity'}: the input image is not transformed. 
   \item \texttt{mars\_intensity\_transformation = 'Normalization\_to\_u8'}: input images are usually encoded on 2 bytes. The choice transformed the input image in an 1-byte image by linearly mapping the input image values from $[I_{min}, I_{max}]$ to $[0, 255]$. $I_{min}$ and $I_{max}$ correspond respectively to the 1\% and to the 99\% percentiles of the input image cumulative histogram. Values below $I_{min}$ are set to $0$ while values above $I_{max}$ are set to $255$.
-  \item \texttt{mars\_intensity\_enhancement = 'GACE'}: \texttt{GACE} stands for \textit{Global Automated Cell Extractor}. This is the method described in \cite{michelin:hal-00915000}. It consists in
+  \item \texttt{mars\_intensity\_enhancement = 'GACE'}: \texttt{GACE}
+    stands for \textit{Global Automated Cell Extractor}. This is the
+    method described in \cite{michelin:hal-00915000,michelin:tel-01451608}. It consists in
     \begin{enumerate}
     \itemsep -1ex
     \item  extracting a centerplane image of the membranes,

@@ -149,6 +149,7 @@ def main():
     monitoring.logfile = environment.path_log_file
     MARS.monitoring.copy(monitoring)
 
+    monitoring.write_parameters(monitoring.logfile)
     experiment.write_parameters(monitoring.logfile)
     environment.write_parameters(monitoring.logfile)
     parameters.write_parameters(monitoring.logfile)

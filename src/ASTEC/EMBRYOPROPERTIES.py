@@ -1,5 +1,7 @@
 
 import os
+import imp
+import sys
 
 import cPickle as pkl
 import xml.etree.ElementTree as ElementTree
@@ -9,6 +11,7 @@ import math
 from operator import itemgetter
 
 import commonTools
+import CommunFunctions.cpp_wrapping as cpp_wrapping
 
 #
 #
@@ -17,6 +20,123 @@ import commonTools
 #
 
 monitoring = commonTools.Monitoring()
+
+
+########################################################################################
+#
+# classes
+# - computation parameters
+#
+########################################################################################
+
+class CellPropertiesParameters(object):
+
+    def __init__(self):
+        self.max_chunks_properties = None
+
+    def write_parameters(self, log_file_name):
+        with open(log_file_name, 'a') as logfile:
+            logfile.write("\n")
+            logfile.write('CellPropertiesParameters\n')
+            logfile.write('- max_chunks_properties = ' + str(self.max_chunks_properties) + '\n')
+            logfile.write("\n")
+        return
+
+    def print_parameters(self):
+        print("")
+        print('CellPropertiesParameters')
+        print('- max_chunks_properties = ' + str(self.max_chunks_properties))
+        print("")
+        return
+
+    def update_from_file(self, parameter_file):
+        if parameter_file is None:
+            return
+        if not os.path.isfile(parameter_file):
+            print("Error: '" + parameter_file + "' is not a valid file. Exiting.")
+            sys.exit(1)
+
+        parameters = imp.load_source('*', parameter_file)
+
+        if hasattr(parameters, 'properties_nb_proc'):
+            if parameters.properties_nb_proc is not None:
+                self.max_chunks_properties = parameters.properties_nb_proc
+        return
+
+
+########################################################################################
+#
+# properties computation from a sequence
+# calculation is done after sequence intra-registration
+#
+########################################################################################
+
+def property_computation(experiment, parameters):
+    """
+
+    :param experiment:
+    :param parameters:
+    :return:
+    """
+
+    proc = 'property_computation'
+
+    #
+    # get directory name where to find co-registered images of the sequence
+    # as well as the common image suffix
+    #
+
+    stage = None
+    intrareg_path = os.path.join(experiment.embryo_path, experiment.intrareg.get_directory(), 'POST')
+    if not os.path.isdir(intrareg_path):
+        monitoring.to_log(proc + ": '" + str(intrareg_path) + "' does not exist")
+        intrareg_path = os.path.join(experiment.embryo_path, experiment.intrareg.get_directory(), 'SEG')
+        if not os.path.isdir(intrareg_path):
+            monitoring.to_log(proc + ": '" + str(intrareg_path) + "' does not exist")
+            intrareg_path = os.path.join(experiment.embryo_path, experiment.intrareg.get_directory())
+            monitoring.to_log_and_console(proc + ": neither POST/ or SEG/ directory in '" + str(intrareg_path) + "'", 0)
+            monitoring.to_log_and_console("Exiting.", 0)
+            return None
+        else:
+            stage = "seg"
+    else:
+        stage = "post"
+
+    monitoring.to_log_and_console("... will compute sequence properties from '" + str(intrareg_path) + "'", 0)
+
+    if stage.lower() == 'post':
+        name_format = experiment.embryoName + "_intrareg" + "_post"
+    elif stage.lower() == 'seg':
+        name_format = experiment.embryoName + "_intrareg" + "_seg"
+    else:
+        monitoring.to_log_and_console(proc + ": weird, this should not be reached", 0)
+        monitoring.to_log_and_console("Exiting.", 0)
+        sys.exit(1)
+
+    suffix = commonTools.get_file_suffix(experiment, intrareg_path, name_format + "_t<TIME>", "<TIME>")
+    if suffix is None:
+        monitoring.to_log_and_console(proc + ": no consistent naming was found in '"
+                                      + str(intrareg_path) + "'", 1)
+        monitoring.to_log_and_console("Exiting.", 0)
+        sys.exit(1)
+
+    #
+    #
+    #
+
+    output_name = os.path.join(intrareg_path, name_format + "_lineage" + ".xml")
+    diagnosis_name = os.path.join(intrareg_path, name_format + "_lineage" + ".txt")
+
+    name_format += "_t%0" + str(experiment.time_digits) + "d" + "." + str(suffix)
+    template_format = os.path.join(intrareg_path, name_format)
+
+    first_time_point = experiment.first_time_point + experiment.delay_time_point
+    last_time_point = experiment.last_time_point + experiment.delay_time_point
+
+    cpp_wrapping.cell_properties(template_format, output_name, first_time_point, last_time_point,
+                                 diagnosis_file=diagnosis_name, monitoring=monitoring)
+
+    return output_name
 
 
 ########################################################################################
@@ -50,7 +170,7 @@ keydictionary = {'lineage': {'output_key': 'cell_lineage',
                  'volume': {'output_key': 'cell_volume',
                             'input_keys': ['cell_volume', 'volumes_information', 'volumes information', 'vol']},
                  'surface': {'output_key': 'cell_surface',
-                            'input_keys': ['cell_surface', 'cell surface']},
+                             'input_keys': ['cell_surface', 'cell surface']},
                  'compactness': {'output_key': 'cell_compactness',
                                  'input_keys': ['cell_compactness', 'Cell Compactness', 'compacity',
                                                 'cell_sphericity']},
@@ -63,11 +183,11 @@ keydictionary = {'lineage': {'output_key': 'cell_lineage',
                  'fate': {'output_key': 'cell_fate',
                           'input_keys': ['cell_fate', 'Fate']},
                  'fate2': {'output_key': 'cell_fate_2',
-                          'input_keys': ['cell_fate_2', 'Fate2']},
+                           'input_keys': ['cell_fate_2', 'Fate2']},
                  'fate3': {'output_key': 'cell_fate_3',
-                          'input_keys': ['cell_fate_3', 'Fate3']},
+                           'input_keys': ['cell_fate_3', 'Fate3']},
                  'fate4': {'output_key': 'cell_fate_4',
-                          'input_keys': ['cell_fate_4', 'Fate4']},
+                           'input_keys': ['cell_fate_4', 'Fate4']},
                  'all-cells': {'output_key': 'all_cells',
                                'input_keys': ['all_cells', 'All Cells', 'All_Cells', 'all cells', 'tot_cells']},
                  'principal-value': {'output_key': 'cell_principal_values',
@@ -81,7 +201,9 @@ keydictionary = {'lineage': {'output_key': 'cell_lineage',
                  'principal-vector': {'output_key': 'cell_principal_vectors',
                                       'input_keys': ['cell_principal_vectors', 'Principal vectors']},
                  'name-score': {'output_key': 'cell_naming_score',
-                                      'input_keys': ['cell_naming_score', 'Scores', 'scores']},
+                                'input_keys': ['cell_naming_score', 'Scores', 'scores']},
+                 'problems': {'output_key': 'problematic_cells',
+                              'input_keys': ['problematic_cells']},
                  'unknown': {'output_key': 'unknown_key',
                              'input_keys': ['unknown_key']}}
 
@@ -391,15 +513,15 @@ def xml2dict(tree):
     for k, v in keydictionary.iteritems():
 
         if root.tag == v['output_key']:
-            monitoring.to_log_and_console(proc + ": process root.tag = '" + str(root.tag) + "'", 3)
+            monitoring.to_log_and_console("   ... " + proc + ": process root.tag = '" + str(root.tag) + "'", 3)
             dictionary[str(root.tag)] = _set_dictionary_value(root)
             break
     else:
         for child in root:
-            monitoring.to_log_and_console(proc + ": process child.tag = '" + str(child.tag) + "'", 3)
+            monitoring.to_log_and_console("   ... " + proc + ": process child.tag = '" + str(child.tag) + "'", 3)
             value = _set_dictionary_value(child)
             if value is None:
-                monitoring.to_log_and_console('   ' + proc + ": empty property '" + str(child.tag) + "' ?! "
+                monitoring.to_log_and_console("       " + proc + ": empty property '" + str(child.tag) + "' ?! "
                                               + " ... skip it", 1)
             else:
                 dictionary[str(child.tag)] = value
@@ -512,17 +634,17 @@ def _set_types_from_xml(propertiesdict):
         return {}
 
     if 'cell_barycenter' in propertiesdict.keys():
-        monitoring.to_log_and_console("   ... translate types of 'cell_barycenter'", 1)
+        monitoring.to_log_and_console("   ... translate types of 'cell_barycenter'", 3)
         for c in propertiesdict['cell_barycenter'].keys():
             propertiesdict['cell_barycenter'][c] = np.array(propertiesdict['cell_barycenter'][c])
 
     if 'cell_history' in propertiesdict.keys():
-        monitoring.to_log_and_console("   ... translate types of 'cell_history'", 1)
+        monitoring.to_log_and_console("   ... translate types of 'cell_history'", 3)
         for c in propertiesdict['cell_history'].keys():
             propertiesdict['cell_history'][c] = np.array(propertiesdict['cell_history'][c])
 
     if 'cell_principal_vectors' in propertiesdict.keys():
-        monitoring.to_log_and_console("   ... translate types of 'cell_principal_vectors'", 1)
+        monitoring.to_log_and_console("   ... translate types of 'cell_principal_vectors'", 3)
         for c in propertiesdict['cell_principal_vectors'].keys():
             for v in range(len(propertiesdict['cell_principal_vectors'][c])):
                 propertiesdict['cell_principal_vectors'][c][v] \
@@ -535,10 +657,38 @@ def _set_types_from_xml(propertiesdict):
 #
 #
 
-def read_dictionary(inputfilenames):
+def _read_xml_file(filename, propertiesdict):
+    monitoring.to_log_and_console("... reading '" + str(filename) + "'", 1)
+    inputxmltree = ElementTree.parse(filename)
+    tmpdict = xml2dict(inputxmltree)
+    propertiesdict = _update_read_dictionary(propertiesdict, tmpdict, filename)
+    del tmpdict
+    return propertiesdict
+
+
+#
+#
+#
+
+def _read_pkl_file(filename, propertiesdict):
+    monitoring.to_log_and_console("... reading '" + str(filename) + "'", 1)
+    inputfile = open(filename, 'r')
+    tmpdict = pkl.load(inputfile)
+    inputfile.close()
+    propertiesdict = _update_read_dictionary(propertiesdict, tmpdict, filename)
+    del tmpdict
+    return propertiesdict
+
+
+#
+#
+#
+
+def read_dictionary(inputfilenames, inputpropertiesdict={}):
     """
 
     :param inputfilenames:
+    :param inputpropertiesdict:
     :return:
     """
     proc = 'read_dictionary'
@@ -547,7 +697,29 @@ def read_dictionary(inputfilenames):
         monitoring.to_log_and_console(proc + ": error, no input files")
         return {}
 
-    propertiesdict = {}
+    propertiesdict = inputpropertiesdict
+
+    #
+    #
+    #
+
+    if type(inputfilenames) == str:
+        if not os.path.isfile(inputfilenames):
+            monitoring.to_log_and_console(proc + ": error, file '" + str(inputfilenames) + "' does not exist")
+            return {}
+
+        if inputfilenames.endswith("xml") is True:
+            propertiesdict = _read_xml_file(inputfilenames, propertiesdict)
+            propertiesdict = _set_types_from_xml(propertiesdict)
+        elif inputfilenames.endswith("pkl") is True:
+            propertiesdict = _read_pkl_file(inputfilenames, propertiesdict)
+        else:
+            monitoring.to_log_and_console(proc + ": error: extension not recognized for '" + str(inputfilenames) + "'")
+        return propertiesdict
+
+    #
+    # here, we assume type(inputfilenames) == list
+    #
 
     #
     # read xml files
@@ -555,31 +727,28 @@ def read_dictionary(inputfilenames):
 
     for filename in inputfilenames:
 
+
         if not os.path.isfile(filename):
             monitoring.to_log_and_console(proc + ": error, file '" + str(filename) + "' does not exist")
             continue
 
         if filename.endswith("xml") is True:
-            monitoring.to_log_and_console("... reading '" + str(filename) + "'", 1)
-            inputxmltree = ElementTree.parse(filename)
-            tmpdict = xml2dict(inputxmltree)
-            propertiesdict = _update_read_dictionary(propertiesdict, tmpdict, filename)
-            del tmpdict
+            propertiesdict = _read_xml_file(filename, propertiesdict)
 
     #
     # translation of xml may take place here
     #
+
     propertiesdict = _set_types_from_xml(propertiesdict)
+
+    #
+    # read pkl files
+    #
 
     for filename in inputfilenames:
 
         if filename.endswith("pkl") is True:
-            monitoring.to_log_and_console("... reading '" + str(filename) + "'", 1)
-            inputfile = open(filename, 'r')
-            tmpdict = pkl.load(inputfile)
-            inputfile.close()
-            propertiesdict = _update_read_dictionary(propertiesdict, tmpdict, filename)
-            del tmpdict
+            propertiesdict = _read_pkl_file(filename, propertiesdict)
 
     #
     #

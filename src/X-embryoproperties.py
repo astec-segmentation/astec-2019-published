@@ -15,8 +15,7 @@ from argparse import ArgumentParser
 
 import ASTEC.commonTools as commonTools
 import ASTEC.EMBRYOPROPERTIES as embryoProp
-import ASTEC.nomenclature as nomenclature
-
+from ASTEC.CommunFunctions.cpp_wrapping import path_to_vt
 #
 #
 #
@@ -31,6 +30,17 @@ def _set_options(my_parser):
         return
     #
     # common parameters
+    #
+
+    my_parser.add_argument('-p', '--parameters',
+                           action='store', dest='parameterFile', const=None,
+                           help='python file containing parameters definition')
+    my_parser.add_argument('-e', '--embryo-rep',
+                           action='store', dest='embryo_path', const=None,
+                           help='path to the embryo data')
+
+    #
+    # other options
     #
 
     my_parser.add_argument('-i', '--input',
@@ -74,11 +84,6 @@ def _set_options(my_parser):
                            action='store_const', dest='print_input_types',
                            default=False, const=True,
                            help='print types of read features (for debug purpose)')
-
-
-#    my_parser.add_argument('-e', '--embryo-rep',
-#                           action='store', dest='embryo_path', const=None,
-#                           help='path to the embryo data')
 
     #
     # control parameters
@@ -125,135 +130,190 @@ if __name__ == '__main__':
 
     start_time = time.localtime()
     monitoring = commonTools.Monitoring()
+    experiment = commonTools.Experiment()
+    parameters = embryoProp.CellPropertiesParameters()
     diagnosis = embryoProp.DiagnosisParameters()
 
     #
     # reading command line arguments
     #
 
-    parser = ArgumentParser(description='X-lineage')
+    parser = ArgumentParser(description='Computation of cell properties')
     _set_options(parser)
     args = parser.parse_args()
 
     monitoring.update_from_args(args)
     diagnosis.update_from_args(args)
 
-    path_log_file = os.path.join(nomenclature.FLAG_EXECUTABLE + '-' + nomenclature.FLAG_TIMESTAMP + '.log')
-    path_log_file = nomenclature.replaceTIMESTAMP(path_log_file, start_time)
-    path_log_file = nomenclature.replaceEXECUTABLE(path_log_file, __file__)
-
     #
-    # uncomment the following line to have a log file written
+    # is there a parameter file?
+    # if yes, compute properties from an image sequence
     #
-    # monitoring.logfile = path_log_file
-    embryoProp.monitoring.copy(monitoring)
+    if args.parameterFile is not None and os.path.isfile(args.parameterFile):
 
-    #
-    # read input file(s)
-    # 1. input file(s): it is assumed that there are keys describing for each dictionary entry
-    # 2. lineage file: such a key may be missing
-    #
+        experiment.update_from_file(args.parameterFile)
+        experiment.update_from_stage("PROPERTIES", __file__, start_time)
 
-    inputdict = embryoProp.read_dictionary(args.inputFiles)
+        if not os.path.isdir(experiment.path_logdir):
+            os.makedirs(experiment.path_logdir)
 
-    if args.print_input_types is True:
-        embryoProp.print_type(inputdict, desc="root")
+        parameters.update_from_file(args.parameterFile)
 
-    if inputdict == {}:
-        print "error: empty input dictionary"
-        sys.exit(-1)
+        #
+        # write history information in history file
+        #
+        commonTools.write_history_information(experiment.path_history_file,
+                                              experiment,
+                                              args.parameterFile,
+                                              start_time,
+                                              os.path.dirname(__file__),
+                                              path_to_vt())
 
+        #
+        # define log file
+        # and write some information
+        #
+        monitoring.logfile = experiment.path_log_file
+        embryoProp.monitoring.copy(monitoring)
+        commonTools.monitoring.copy(monitoring)
 
-    #
-    # display content
-    #
+        monitoring.write_parameters(monitoring.logfile)
+        experiment.write_parameters(monitoring.logfile)
+        parameters.write_parameters(monitoring.logfile)
+        diagnosis.write_parameters(monitoring.logfile)
 
-    if args.print_content is True:
-        embryoProp.print_keys(inputdict)
+        #
+        # copy parameter file
+        #
+        commonTools.copy_date_stamped_file(args.parameterFile, experiment.path_logdir, start_time)
 
-    #
-    # is a diagnosis to be done?
-    #
+        #
+        # compute sequence properties in xml format
+        #
+        xml_output = embryoProp.property_computation(experiment, parameters)
 
-    if args.print_diagnosis is True:
-        embryoProp.diagnosis(inputdict, args.outputFeatures, diagnosis)
+        #
+        # copy sequence properties in pkl format
+        #
+        pkl_output = xml_output[0:len(xml_output)-4] + ".pkl"
 
+        inputdict = embryoProp.read_dictionary(xml_output)
+        propertiesfile = open(pkl_output, 'w')
+        pkl.dump(inputdict, propertiesfile)
+        propertiesfile.close()
 
-    #
-    # is there some comparison to be done?
-    #
+        endtime = time.localtime()
 
-    if args.compareFiles is not None and len(args.compareFiles) > 0:
-        comparedict = embryoProp.read_dictionary(args.compareFiles)
-        if comparedict == {}:
-            print "error: empty dictionary to be compared with"
+        monitoring.to_log_and_console("")
+        monitoring.to_log_and_console("Total execution time = "+str(time.mktime(endtime)-time.mktime(start_time))+"sec")
+        monitoring.to_log_and_console("")
+
+    else:
+
+        #
+        # read input file(s)
+        # 1. input file(s): it is assumed that there are keys describing for each dictionary entry
+        # 2. lineage file: such a key may be missing
+        #
+
+        inputdict = embryoProp.read_dictionary(args.inputFiles)
+
+        if args.print_input_types is True:
+            embryoProp.print_type(inputdict, desc="root")
+
+        if inputdict == {}:
+            print "error: empty input dictionary"
+            sys.exit(-1)
+
+        #
+        # display content
+        #
+
+        if args.print_content is True:
+            embryoProp.print_keys(inputdict)
+
+        #
+        # is a diagnosis to be done?
+        #
+
+        if args.print_diagnosis is True:
+            embryoProp.diagnosis(inputdict, args.outputFeatures, diagnosis)
+
+        #
+        # is there some comparison to be done?
+        #
+
+        if args.compareFiles is not None and len(args.compareFiles) > 0:
+            comparedict = embryoProp.read_dictionary(args.compareFiles)
+            if comparedict == {}:
+                print "error: empty dictionary to be compared with"
+            else:
+                embryoProp.comparison(inputdict, comparedict, args.outputFeatures, 'input entry', 'compared entry')
+
+        #
+        # select features if required
+        #
+
+        outputdict = {}
+
+        if args.outputFeatures is not None:
+
+            #
+            # search for required features
+            #
+
+            for feature in args.outputFeatures:
+
+                # print "search feature '" + str(feature) + "'"
+                target_key = embryoProp.keydictionary[feature]
+
+                for searchedkey in target_key['input_keys']:
+                    if searchedkey in inputdict:
+                        # print "found feature '" + str(ok) + "'"
+                        outputdict[target_key['output_key']] = inputdict[searchedkey]
+                        break
+                else:
+                    print "error: feature '" + str(feature) + "' not found in dictionary"
+
         else:
-            embryoProp.comparison(inputdict, comparedict, args.outputFeatures, 'input entry', 'compared entry')
 
-    #
-    # select features if required
-    #
+            #
+            # copy dictionary
+            #
 
-    outputdict = {}
+            # print "copy dictionary"
+            outputdict = inputdict
 
-    if args.outputFeatures is not None:
-
-        #
-        # search for required features
-        #
-
-        for feature in args.outputFeatures:
-
-            # print "search feature '" + str(feature) + "'"
-            target_key = embryoProp.keydictionary[feature]
-
-            for searchedkey in target_key['input_keys']:
-                if searchedkey in inputdict:
-                    # print "found feature '" + str(ok) + "'"
-                    outputdict[target_key['output_key']] = inputdict[searchedkey]
-                    break
-            else:
-                print "error: feature '" + str(feature) + "' not found in dictionary"
-
-    else:
+        if outputdict == {}:
+            print "error: empty input dictionary ?! ... exiting"
+            sys.exit()
 
         #
-        # copy dictionary
+        # produces outputs
         #
 
-        # print "copy dictionary"
-        outputdict = inputdict
+        if args.outputFiles is None:
+            pass
+            # print "error: no output file(s)"
+        else:
+            for ofile in args.outputFiles:
+                print "... writing '" + str(ofile) + "'"
+                if ofile.endswith("pkl") is True:
+                    propertiesfile = open(ofile, 'w')
+                    pkl.dump(outputdict, propertiesfile)
+                    propertiesfile.close()
+                elif ofile.endswith("xml") is True:
+                    xmltree = embryoProp.dict2xml(outputdict)
+                    xmltree.write(ofile)
+                elif ofile.endswith("tlp") is True:
+                    embryoProp.write_tlp_file(outputdict, ofile)
+                else:
+                    print "   error: extension not recognized for '" + str(ofile) + "'"
 
-    if outputdict == {}:
-        print "error: empty input dictionary ?! ... exiting"
-        sys.exit()
+        endtime = time.localtime()
 
-    #
-    # produces outputs
-    #
-
-    if args.outputFiles is None:
-        pass
-        # print "error: no output file(s)"
-    else:
-        for ofile in args.outputFiles:
-            print "... writing '" + str(ofile) + "'"
-            if ofile.endswith("pkl") is True:
-                propertiesfile = open(ofile, 'w')
-                pkl.dump(outputdict, propertiesfile)
-                propertiesfile.close()
-            elif ofile.endswith("xml") is True:
-                xmltree = embryoProp.dict2xml(outputdict)
-                xmltree.write(ofile)
-            elif ofile.endswith("tlp") is True:
-                embryoProp.write_tlp_file(outputdict, ofile)
-            else:
-                print "   error: extension not recognized for '" + str(ofile) + "'"
-
-    endtime = time.localtime()
-
-    # monitoring.to_log_and_console("")
-    # monitoring.to_log_and_console("Total execution time = "+str(time.mktime(endtime)-time.mktime(start_time))+"sec")
-    # monitoring.to_log_and_console("")
+        # monitoring.to_log_and_console("")
+        # monitoring.to_log_and_console("Total execution time = "+str(time.mktime(endtime)-time.mktime(start_time))+"sec")
+        # monitoring.to_log_and_console("")
 
 

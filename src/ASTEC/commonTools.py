@@ -76,6 +76,181 @@ class Monitoring(object):
         self.to_log(text)
 
 
+monitoring = Monitoring()
+
+
+#
+#
+#
+#
+#
+
+
+class ExperimentGenericSubdirectory(object):
+
+    #
+    # how to build sub-directories of /path/to/experiment
+    # <main_directory>/<sub_directory_prefix><sub_directory_suffix>
+    #
+    def __init__(self):
+        self.main_directory = None
+        self.sub_directory_prefix = None
+        self.sub_directory_suffix = None
+        self.directory = None
+
+    #
+    #
+    #
+
+    def write_parameters(self, directory_type, logfilename):
+        with open(logfilename, 'a') as logfile:
+            if type(directory_type) is not str:
+                logfile.write('ExperimentGenericSubdirectory.set_default: unknown arg type.\n')
+            if directory_type.lower() == 'fuse':
+                logfile.write("- subpath/to/fusion is '" + str(self.get_directory()) + "'\n")
+            elif directory_type.lower() == 'intrareg':
+                logfile.write("- subpath/to/intraregistration is '" + str(self.get_directory()) + "'\n")
+            elif directory_type.lower() == 'mars':
+                logfile.write("- subpath/to/mars is '" + str(self.get_directory()) + "'\n")
+            elif directory_type.lower() == 'post':
+                logfile.write("- subpath/to/postcorrection is '" + str(self.get_directory()) + "'\n")
+            elif directory_type.lower() == 'seg':
+                logfile.write("- subpath/to/segmentation is '" + str(self.get_directory()) + "'\n")
+            else:
+                logfile.write('ExperimentGenericSubdirectory.set_default: unknown arg.\n')
+        return
+
+    def write_parameters_in_file(self, directory_type, logfile):
+        if type(directory_type) is not str:
+            logfile.write('ExperimentGenericSubdirectory.set_default: unknown arg type.\n')
+        if directory_type.lower() == 'fuse':
+            logfile.write("- subpath/to/fusion is '" + str(self.get_directory()) + "'\n")
+        elif directory_type.lower() == 'intrareg':
+            logfile.write("- subpath/to/intraregistration is '" + str(self.get_directory()) + "'\n")
+        elif directory_type.lower() == 'mars':
+            logfile.write("- subpath/to/mars is '" + str(self.get_directory()) + "'\n")
+        elif directory_type.lower() == 'post':
+            logfile.write("- subpath/to/postcorrection is '" + str(self.get_directory()) + "'\n")
+        elif directory_type.lower() == 'seg':
+            logfile.write("- subpath/to/segmentation is '" + str(self.get_directory()) + "'\n")
+        else:
+            logfile.write('ExperimentGenericSubdirectory.set_default: unknown arg.\n')
+        return
+
+    def print_parameters(self, directory_type):
+        if type(directory_type) is not str:
+            print('ExperimentGenericSubdirectory.set_default: unknown arg type.')
+        if directory_type.lower() == 'fuse':
+            print("- subpath/to/fusion is '" + str(self.get_directory()) + "'")
+        elif directory_type.lower() == 'intrareg':
+            print("- subpath/to/intraregistration is '" + str(self.get_directory()) + "'")
+        elif directory_type.lower() == 'mars':
+            print("- subpath/to/mars is '" + str(self.get_directory()) + "'")
+        elif directory_type.lower() == 'post':
+            print("- subpath/to/postcorrection is '" + str(self.get_directory()) + "'")
+        elif directory_type.lower() == 'seg':
+            print("- subpath/to/segmentation is '" + str(self.get_directory()) + "'")
+        else:
+            print('ExperimentGenericSubdirectory.set_default: unknown arg.\n')
+        return
+
+    #
+    # set default value of sub-directory template according to type
+    #
+
+    def set_default(self, directory_type):
+
+        if type(directory_type) is not str:
+            print("ExperimentGenericSubdirectory.set_default: unknown arg type. Exiting.")
+            sys.exit(1)
+        if directory_type.lower() == 'fuse':
+            if self.main_directory is None:
+                self.main_directory = 'FUSE'
+            if self.sub_directory_prefix is None:
+                self.sub_directory_prefix = 'FUSE_'
+            if self.sub_directory_suffix is None:
+                self.sub_directory_suffix = 'RELEASE'
+        elif directory_type.lower() == 'intrareg':
+            if self.main_directory is None:
+                self.main_directory = 'INTRAREG'
+            if self.sub_directory_prefix is None:
+                self.sub_directory_prefix = 'INTRAREG_'
+            if self.sub_directory_suffix is None:
+                self.sub_directory_suffix = 'RELEASE'
+        elif directory_type.lower() == 'mars':
+            if self.main_directory is None:
+                self.main_directory = 'SEG'
+            if self.sub_directory_prefix is None:
+                self.sub_directory_prefix = 'EXP_'
+            if self.sub_directory_suffix is None:
+                self.sub_directory_suffix = 'RELEASE'
+        elif directory_type.lower() == 'post':
+            if self.main_directory is None:
+                self.main_directory = 'POST'
+            if self.sub_directory_prefix is None:
+                self.sub_directory_prefix = 'POST_'
+            if self.sub_directory_suffix is None:
+                self.sub_directory_suffix = 'RELEASE'
+        elif directory_type.lower() == 'seg':
+            if self.main_directory is None:
+                self.main_directory = 'SEG'
+            if self.sub_directory_prefix is None:
+                self.sub_directory_prefix = 'EXP_'
+            if self.sub_directory_suffix is None:
+                self.sub_directory_suffix = 'RELEASE'
+        else:
+            print("ExperimentGenericSubdirectory.set_default: unknown arg.")
+        return
+
+    #
+    #
+    #
+
+    def get_directory(self):
+        if self.directory is not None:
+            return self.directory
+        self.directory = os.path.join(str(self.main_directory),
+                                      str(self.sub_directory_prefix)+str(self.sub_directory_suffix))
+        return self.directory
+
+    #
+    # read values of sub-directory template according to type
+    #
+
+    def update_from_parameters(self, directory_type, parameters):
+
+        if type(directory_type) is not str:
+            print("ExperimentGenericSubdirectory.set_default: unknown arg type. Exiting.")
+            sys.exit(1)
+
+        if directory_type.lower() == 'fuse':
+            if hasattr(parameters, 'EXP_FUSE'):
+                if parameters.EXP_FUSE is not None:
+                    self.sub_directory_suffix = parameters.EXP_FUSE
+        elif directory_type.lower() == 'intrareg':
+            if hasattr(parameters, 'EXP_INTRAREG'):
+                if parameters.EXP_INTRAREG is not None:
+                    self.sub_directory_suffix = parameters.EXP_INTRAREG
+        elif directory_type.lower() == 'mars':
+            if hasattr(parameters, 'EXP_SEG'):
+                if parameters.EXP_SEG is not None:
+                    self.sub_directory_suffix = parameters.EXP_SEG
+            if hasattr(parameters, 'EXP_MARS'):
+                if parameters.EXP_MARS is not None:
+                    self.sub_directory_suffix = parameters.EXP_MARS
+        elif directory_type.lower() == 'post':
+            if hasattr(parameters, 'EXP_POST'):
+                if parameters.EXP_POST is not None:
+                    self.sub_directory_suffix = parameters.EXP_POST
+        elif directory_type.lower() == 'seg':
+            if hasattr(parameters, 'EXP_SEG'):
+                if parameters.EXP_SEG is not None:
+                    self.sub_directory_suffix = parameters.EXP_SEG
+        else:
+            print("ExperimentGenericSubdirectory.set_default: unknown arg.")
+
+        return
+
 #
 #
 #
@@ -86,12 +261,44 @@ class Monitoring(object):
 class Experiment(object):
 
     def __init__(self):
+
         self.embryo_path = None
         self.embryoName = None
+
         self.first_time_point = -1
         self.last_time_point = -1
         self.delta_time_point = 1
         self.delay_time_point = 0
+
+        self.time_digits = 3
+
+        #
+        # stage
+        # eg FUSE, MARS, MAN-CORRECTION, SEG, POST-CORRECTION, INTRAREG, PROPERTIES
+        #
+        self.stage = None
+
+        #
+        # sub-directories
+        #
+        self.fusion = ExperimentGenericSubdirectory()
+        self.mars = ExperimentGenericSubdirectory()
+        self.seg = ExperimentGenericSubdirectory()
+        self.post = ExperimentGenericSubdirectory()
+        self.intrareg = ExperimentGenericSubdirectory()
+
+        self.fusion.set_default('fuse')
+        self.mars.set_default('mars')
+        self.seg.set_default('seg')
+        self.post.set_default('post')
+        self.intrareg.set_default('intrareg')
+
+        #
+        #
+        #
+        self.path_logdir = None
+        self.path_history_file = None
+        self.path_log_file = None
 
     #
     #
@@ -106,6 +313,15 @@ class Experiment(object):
             logfile.write('- last_time_point is ' + str(self.last_time_point)+'\n')
             logfile.write('- delta_time_point is ' + str(self.delta_time_point)+'\n')
             logfile.write('- delay_time_point is ' + str(self.delay_time_point)+'\n')
+            logfile.write('- time_digits is ' + str(self.time_digits) + '\n')
+            self.fusion.write_parameters_in_file('FUSE', logfile)
+            self.mars.write_parameters_in_file('MARS', logfile)
+            self.seg.write_parameters_in_file('SEG', logfile)
+            self.post.write_parameters_in_file('POST', logfile)
+            self.intrareg.write_parameters_in_file('INTRAREG', logfile)
+            logfile.write('- path_logdir is ' + str(self.path_logdir) + '\n')
+            logfile.write('- path_history_file is ' + str(self.path_history_file) + '\n')
+            logfile.write('- path_log_file is ' + str(self.path_log_file) + '\n')
             logfile.write("\n")
         return
 
@@ -118,6 +334,15 @@ class Experiment(object):
         print('- last_time_point is ' + str(self.last_time_point))
         print('- delta_time_point is ' + str(self.delta_time_point))
         print('- delay_time_point is ' + str(self.delay_time_point))
+        print('- time_digits is ' + str(self.time_digits))
+        self.fusion.print_parameters('FUSE')
+        self.mars.print_parameters('MARS')
+        self.seg.print_parameters('SEG')
+        self.post.print_parameters('POST')
+        self.intrareg.print_parameters('INTRAREG')
+        print('- path_logdir is ' + str(self.path_logdir))
+        print('- path_history_file is ' + str(self.path_history_file))
+        print('- path_log_file is ' + str(self.path_log_file))
         print("")
 
     #
@@ -192,6 +417,49 @@ class Experiment(object):
         if hasattr(parameters, 'raw_delay'):
             if parameters.raw_delay is not None:
                 self.delay_time_point = parameters.raw_delay
+
+        self.fusion.update_from_parameters('FUSE', parameters)
+        self.mars.update_from_parameters('MARS', parameters)
+        self.seg.update_from_parameters('SEG', parameters)
+        self.post.update_from_parameters('POST', parameters)
+        self.intrareg.update_from_parameters('INTRAREG', parameters)
+
+        return
+
+    #
+    #
+    #
+    def update_from_stage(self, stage, executable, timestamp):
+        if stage.lower() == 'fuse':
+            self.path_logdir = os.path.join(self.fusion.get_directory(), "LOGS")
+        elif stage.lower() == 'mars':
+            self.path_logdir = os.path.join(self.mars.get_directory(), "LOGS")
+        elif stage.lower() == 'man-correction' or stage.lower() == 'manual-correction':
+            self.path_logdir = os.path.join(self.seg.get_directory(), "LOGS")
+        elif stage.lower() == 'seg':
+            self.path_logdir = os.path.join(self.seg.get_directory(), "LOGS")
+        elif stage.lower() == 'post-correction':
+            self.path_logdir = os.path.join(self.post.get_directory(), "LOGS")
+        elif stage.lower() == 'intrareg' or stage.lower() == 'intraregistration':
+            self.path_logdir = os.path.join(self.intrareg.get_directory(), "LOGS")
+        elif stage.lower() == 'properties':
+            self.path_logdir = os.path.join(self.intrareg.get_directory(), "LOGS")
+        else:
+            print("Experiment.update_from_stage: unknown stage.")
+
+        if executable is None:
+            local_executable = 'unknown'
+        else:
+            local_executable = os.path.basename(executable)
+            if local_executable[-3:] == '.py':
+                local_executable = local_executable[:-3]
+
+        self.path_history_file = os.path.join(self.path_logdir, str(local_executable)+'-history.log')
+        if timestamp is None:
+            d = time.strftime("%Y-%m-%d-%H:%M:%S", time.localtime())
+        else:
+            d = time.strftime("%Y-%m-%d-%H:%M:%S", timestamp)
+        self.path_log_file = os.path.join(self.path_logdir, str(local_executable) + '-' + str(d) + '.log')
 
         return
 
@@ -290,7 +558,7 @@ class RegistrationParameters(object):
         if hasattr(parameters, _fullname(self.prefix, 'transformation_estimation_type')):
             if getattr(parameters, _fullname(self.prefix, 'transformation_estimation_type'), 'None') is not None:
                 self.transformation_estimation_type = getattr(parameters,
-                                                     _fullname(self.prefix, 'transformation_estimation_type'))
+                                                              _fullname(self.prefix, 'transformation_estimation_type'))
 
         if hasattr(parameters, _fullname(self.prefix, 'lts_fraction')):
             if getattr(parameters, _fullname(self.prefix, 'lts_fraction'), 'None') is not None:
@@ -366,8 +634,6 @@ def _write_git_information(path, logfile, desc):
                             shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
     (stdoutData, stderrData) = pipe.communicate()
 
-
-
     if len(stderrData) > 6:
         if stderrData[0:6] == "fatal:":
             logfile.write("no a git repository\n")
@@ -396,9 +662,6 @@ def _write_git_information(path, logfile, desc):
         logfile.write("#\t" + str(v[0] + "\n"))
 
     return
-
-
-
 
 
 def write_history_information(logfile_name,
@@ -635,3 +898,68 @@ def find_file(data_path, file_prefix, monitoring=None, verbose=True):
         # return None
 
     return file_names[0]
+
+
+#
+#
+#
+#
+#
+
+def get_file_suffix(experiment, data_path, file_format, flag_time=None):
+    """
+
+    :param experiment:
+    :param data_path:
+    :param file_format:
+    :return:
+    """
+
+    proc = "get_file_suffix"
+
+    first_time_point = experiment.first_time_point + experiment.delay_time_point
+    last_time_point = experiment.last_time_point + experiment.delay_time_point
+
+    suffixes = {}
+    nimages = 0
+    nfiles = 0
+
+    if flag_time is not None:
+        FLAG_TIME = flag_time
+    else:
+        FLAG_TIME = "$TIME"
+
+
+    #
+    # get and count suffixes for images
+    #
+    for current_time in range(first_time_point + experiment.delay_time_point + experiment.delta_time_point,
+                              last_time_point + experiment.delay_time_point + 1, experiment.delta_time_point):
+
+        time_point = '{:0{width}d}'.format(current_time, width=experiment.time_digits)
+        file_prefix = file_format.replace(FLAG_TIME, time_point)
+
+        for f in os.listdir(data_path):
+            if len(f) <= len(file_prefix):
+                pass
+            if f[0:len(file_prefix)] == file_prefix and f[len(file_prefix)] == '.':
+                suffix = f[len(file_prefix) + 1:len(f)]
+                suffixes[suffix] = suffixes.get(suffix, 0) + 1
+                nfiles += 1
+
+        nimages += 1
+
+    for s, n in suffixes.items():
+        if n == nimages:
+            return s
+
+    if nfiles < nimages:
+        monitoring.to_log_and_console(proc + ": weird, not enough images '" + str(file_format)
+                                      + "' were found in '" + str(data_path) + "'", 0)
+        monitoring.to_log_and_console("\t Exiting.", 0)
+        exit(1)
+
+    monitoring.to_log_and_console(proc + ": no common suffix for '" + str(file_format)
+                                  + "' was found in '" + str(data_path) + "'", 2)
+    monitoring.to_log_and_console("\t time point range was ["+str(first_time_point)+", "+str(last_time_point)+"]")
+    return None

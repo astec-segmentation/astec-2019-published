@@ -1,0 +1,131 @@
+\section{\texttt{X-embryoproperties.py}}
+\label{sec:cli:embryoproperties}
+
+\texttt{X-embryoproperties.py} can be used either to extract cell properties as well as cell lineage from a co-registered image sequence or to handle a property file (pkl or xml).
+
+
+\subsection{\texttt{X-embryoproperties.py} options}
+
+The following options are available:
+\begin{description}
+  \itemsep -1ex
+\item[\texttt{-h}] prints a help message
+\item[\texttt{-p \underline{file}}] set the parameter file to be parsed
+\item[\texttt{-e \underline{path}}] set the
+  \texttt{\underline{path}} to the directory where the
+  \texttt{RAWDATA/} directory is located
+\item[\texttt{-i \underline{files \ldots}}] input files (pkl or xml) to be read
+\item[\texttt{-o \underline{files \ldots}}] output files (pkl or xml) to be read
+\item[\texttt{-c \underline{files \ldots}}]  files (pkl or xml) to be compared to those given by \texttt{-i}
+\item[\texttt{-feature \underline{features \ldots}}] features to be extracted from the input files, that are to be written in the output files. Features have to be chosen in 'lineage',  'h\_min', 'volume', 'surface', 'sigma',
+    'label\_in\_time', 'barycenter', 'fate', 'fate2',
+    'fate3', 'fate4', 'all-cells', 'principal-value',
+    'name', 'contact', 'history', 'principal-vector',
+    'name-score', 'cell-compactness'
+\item[\texttt{-property \underline{features \ldots}}] same as \texttt{-feature}
+\item[\texttt{--diagnosis}] performs some test on the read properties
+\item[\texttt{--diagnosis-minimal-volume \underline{DIAGNOSIS\_MINIMAL\_VOLUME}}] displays all cells with volume smaller than \underline{DIAGNOSIS\_MINIMAL\_VOLUME}
+\item[\texttt{--diagnosis-items \underline{DIAGNOSIS\_ITEMS}}] minimal number of items to be displayed
+\item[\texttt{--print-content}] print the keys of the input file(s) (read as python dictionary)
+\item[\texttt{--print-keys}] same as \texttt{--print-content}
+\item[\texttt{--print-types}] print types of read features (for debug purpose)
+\item[\texttt{-k}] allows to keep the temporary files
+\item[\texttt{-f}] forces execution, even if (temporary) result files
+  are already existing
+\item[\texttt{-v}] increases verboseness (both at console and in the
+  log file)
+\item[\texttt{-nv}] no verboseness
+\item[\texttt{-d}]  increases debug information (in the
+  log file)
+\item[\texttt{-nd}] no debug information
+\end{description}
+
+\subsection{Extracting properties from a co-registered image sequence}
+
+When a parameter file is passed after the \texttt{-p} option, \texttt{X-embryoproperties.py} will compute image sequence properties.
+Computing cell related informations as well as the lineage tree requires that the (post-corrected) segmentation images have already been co-registered (with \texttt{1.5-intraregistration.py} see section \ref{sec:cli:intraregistration}). 
+\texttt{X-embryoproperties.py} will parse the \texttt{INTRAREG/INTRAREG\_<EXP\_INTRAREG>/} directory, and will compute the properties from the images in the \texttt{POST/} sub-directory, if existing, else of from the \texttt{SEG/} sub-directory.
+
+\subsubsection{Output data}
+The results are stored in the \texttt{POST/} or \texttt{SEG/} sub-directory 
+under the \texttt{INTRAREG/INTRAREG\_<EXP\_INTRAREG>} under the directory where \texttt{<EXP\_INTRAREG>} is the value of the variable \texttt{EXP\_INTRAREG} (its
+default value is '\texttt{RELEASE}').
+The resulting properties will be stored in the same directory than the images they are issued. It will be stored as a pickle python file, and also as a XML file. Both files contain exactly the same information.
+
+According that the \texttt{POST/} sub-directory exists (that post-corrected segmentation images have been co-registered), 3 files will be created, named after \texttt{<EN>}
+
+\dirtree{%
+.1 /path/to/experiment/.
+.2 \ldots.
+.2 INTRAREG/.
+.3 INTRAREG\_<EXP\_INTRAREG>/.
+.4 \ldots.
+.4 POST/.
+.5 <EN>\_intrareg\_post\_lineage.pkl.
+.5 <EN>\_intrareg\_post\_lineage.txt.
+.5 <EN>\_intrareg\_post\_lineage.xml.
+.5 \ldots.
+.4 \ldots.
+.2 \ldots.
+}
+\mbox{}
+
+The computed information are
+\begin{description}
+  \itemsep -1ex
+\item[\texttt{all\_cells}] All the cell identifiers. Each cell (in a segmentation image) has a given label (ranging from 2 and above, 1 being used for the background) in each image. To uniquely identify a cell in the sequence, it has been given an unique identifier computed by $i * 1000 + c$, $i$ and $c$ denoting respectively the image index (ranging in [\texttt{<begin>}, \texttt{<end>}]) and the cell label.
+\item[\texttt{cell\_barycenter}] Cell center of mass (in voxel coordinates)
+\item[\texttt{cell\_contact\_surface}] For each cell, give for each neighboring cell the contact surface. The sum of these contact surfaces is the cell surface.
+\item[\texttt{cell\_principal\_vectors}] The cell principal vectors are issued from the diagonalization of the cell covariance matrix (in voxel unit).
+\item[\texttt{cell\_principal\_values}] The cell principal value are issued from the diagonalization of the cell covariance matrix (in voxel unit).
+\item[\texttt{cell\_volume}] Cell volume (in voxel unit)
+\item[\texttt{cell\_compactness}] The cell compactness is defined by $\mathcal{C} =\frac{\sqrt[3]{\mathcal{V}}}{\sqrt[2]{\mathcal{S}}}$ where $\mathcal{V}$ is the volume of the cell and $\mathcal{S}$ is its surface.
+\item[\texttt{cell\_surface}] Cell surface (in pixel unit). For this computation, is mandatory that the co-registered images are isotropic (the same voxel size along the 3 dimensions X, Y, and Z).
+\item[\texttt{cell\_lineage}]
+\end{description}
+
+The text file \texttt{<EN>\_intrareg\_post\_lineage.txt} contains diagnosis information about the sequence. It lists
+\begin{itemize}
+  \itemsep -1ex
+\item the cell with the smallest sizes as well as the ones with the largest sizes
+\item the cell with a weird lineage: cells without a mother cell, or cells without daughter cells or having more than 2 daughter cells
+\item cells having a small intersection with its mother cell with respect to either the mother cell volume or the cell volume. 
+\end{itemize}
+
+\subsubsection{Parameter list}
+
+Please also refer to the file
+\texttt{parameter-file-examples/X-embryoproperties-parameters.py}
+
+\begin{itemize}
+\itemsep -1ex
+\item \texttt{EN}
+\item \texttt{EXP\_INTRAREG}
+\item \texttt{PATH\_EMBRYO}
+\item \texttt{begin}
+\item \texttt{end}
+\item \texttt{properties\_nb\_proc} the property computation supports parallelism. However, it appears that the opening of several files at the same time may cause the computation to fail. Thus, the default behavior is a sequential processing. To enable parallelism, this parameter can be set to either any negative value (causing a default parallel behavior) or to a positive value indicating the number of threads to be created.
+\end{itemize}
+
+\subsection{Handling properties files}
+
+\texttt{X-embryoproperties.py} can also help managing property files.
+
+\begin{itemize}
+  \itemsep -1ex
+\item Converting from \texttt{xml} to \texttt{pkl} and  the other way around.
+  \begin{code}{0.8}
+  \$ X-embryoproperties.py -i file.pkl -o file.xml
+  \end{code}
+  convert the pickle file \texttt{file.pkl} into the xml file  \texttt{file.xml}
+\item Merging files.
+  \begin{code}{0.8}
+  \$ X-embryoproperties.py -i file1.pkl file2.xml \ldots filen.pkl -o merge.xml merge.pkl
+  \end{code}
+  will merge the files  \texttt{file1.pkl},  \texttt{file2.xml} , \ldots, \texttt{filen.pkl} (note that they can be either xml or pkl) and write the result both in \texttt{xml} and \texttt{pkl} formats.
+\item Extracting properties.
+  \begin{code}{0.8}
+  \$ X-embryoproperties.py -i file.pkl -feature volume surface -o file.xml
+  \end{code}
+  will extract the cell volume and surface information from the  pickle file \texttt{file.pkl} and write them into the xml file  \texttt{file.xml}
+\end{itemize}

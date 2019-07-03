@@ -122,7 +122,7 @@ def path_to_vt():
 
 ############################################################
 #
-# function for the fusion steps
+#
 #
 ############################################################
 
@@ -1317,6 +1317,56 @@ def only_keep_seeds_in_cell(seed_image, cell_image, seed_result,
     _launch_inline_cmd(command_line, monitoring=monitoring)
 
     return
+
+
+############################################################
+#
+#
+#
+############################################################
+
+
+def cell_properties(format_input, output, first, last, diagnosis_file=None, max_chunks=None,
+                    other_options=None, monitoring=None):
+    """
+
+    :param format_input:
+    :param output:
+    :param first:
+    :param last:
+    :param diagnosis_file:
+    :param max_chunks:
+    :param other_options:
+    :param monitoring:
+    :return:
+    """
+
+    path_to_exec = _find_exec('mc-cellProperties')
+
+    command_line = path_to_exec + " -segmentation-format " + format_input + " -output-xml " + output
+    command_line += " -first " + str(first) + " -last " + str(last)
+    if diagnosis_file is not None:
+        command_line += " -diagnosis " + str(diagnosis_file)
+    if max_chunks is None:
+        command_line += " -max-chunks-properties 1"
+    elif type(max_chunks) == int:
+        if max_chunks >= 1:
+            command_line += " -max-chunks-properties " + str(max_chunks)
+        else:
+            pass
+    else:
+        command_line += " -max-chunks-properties 1"
+
+    #
+    #
+    #
+    if other_options is not None:
+        command_line += " " + other_options
+
+    _launch_inline_cmd(command_line, monitoring=monitoring)
+
+    return
+
 
 ############################################################
 #

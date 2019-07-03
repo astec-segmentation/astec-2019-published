@@ -36,15 +36,15 @@ The following options are available:
 
 The results are stored in sub-directories
 \texttt{SEG/SEG\_<EXP\_SEG>} under the
-\texttt{/path/to/experiment/} directory where where \texttt{<EXP\_SEG>} is the value of the variable \texttt{EXP\_SEG} (its
+\texttt{/path/to/experiment/} directory where \texttt{<EXP\_SEG>} is the value of the variable \texttt{EXP\_SEG} (its
 default value is '\texttt{RELEASE}').
 \texttt{<EN>\_seg\_t<begin>.inr} is the correction of the segmentation image \texttt{<EN>\_mars\_t<begin>.inr}.
 
 \dirtree{%
 .1 /path/to/experiment/.
 .2 \ldots.
-.2 SEG.
-.3 SEG\_<EXP\_SEG>.
+.2 SEG/.
+.3 SEG\_<EXP\_SEG>/.
 .4 <EN>\_mars\_t<begin>.inr.
 .4 <EN>\_seg\_t<begin>.inr.
 .4 LOGS/.

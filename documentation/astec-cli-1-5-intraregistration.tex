@@ -78,21 +78,21 @@ The following options are available:
 
 The results are stored in sub-directories
 \texttt{INTRAREG/INTRAREG\_<EXP\_INTRAREG>} under the
-\texttt{/path/to/experiment/} directory where where \texttt{<EXP\_INTRAREG>} is the value of the variable \texttt{EXP\_INTRAREG} (its
+\texttt{/path/to/experiment/} directory where \texttt{<EXP\_INTRAREG>} is the value of the variable \texttt{EXP\_INTRAREG} (its
 default value is '\texttt{RELEASE}'). 
 
 \dirtree{%
 .1 /path/to/experiment/.
 .2 \ldots.
-.2 INTRAREG.
-.3 INTRAREG\_<EXP\_INTRAREG>.
-.4 CO-TRSFS.
-.4 FUSE.
-.4 LOGS.
-.4 MOVIES.
-.4 [POST].
-.4 [SEG].
-.4 TRSFS\_t<begin>-<end>.
+.2 INTRAREG/.
+.3 INTRAREG\_<EXP\_INTRAREG>/.
+.4 CO-TRSFS/.
+.4 FUSE/.
+.4 LOGS/.
+.4 MOVIES/.
+.4 [POST/].
+.4 [SEG/].
+.4 TRSFS\_t<begin>-<end>/.
 .2 \ldots.
 }
 
@@ -104,10 +104,10 @@ same X, Y and Z dimensions)
 \dirtree{%
 .1 /path/to/experiment/.
 .2 \ldots.
-.2 INTRAREG.
-.3 INTRAREG\_<EXP\_INTRAREG>.
+.2 INTRAREG/.
+.3 INTRAREG\_<EXP\_INTRAREG>/.
 .4 \ldots.
-.4 FUSE.
+.4 FUSE/.
 .5 <EN>\_intrareg\_fuse\_t<xxx>.inr
 .4 \ldots.
 .2 \ldots.
@@ -149,7 +149,17 @@ The \verb|intra_registration_reference_index| allows to choose the reference ima
 
 Depending on \verb|intra_registration_template_type| (\verb|'FUSION'|, \verb|'SEGMENTATION'| or \verb|'POST-SEGMENTATION'|, the two latter assume obviously that the segmentation has been done), the \textit{template} image can be built either after the fusion or the segmentation images. If no threshold is given by \verb|intra_registration_template_threshold|, the built template will be large enough to include all the transformed fields of view (in this case, the template is the same whatever \verb|intra_registration_template_type| is). 
 
-If a threshold is given, the built template will be large enough to include all the transformed points above the threshold. E.g., the background is labeled with either '1' or '0' in segmentation images, then a threshold of '2' ensures that all the embryo cells will not be cut by the resampling stage.  In this case, adding an additional margin to the template could be a good idea for visualization purpose. Last but not least, using a larger resolution than the \verb|intra_registration_resolution| allows to decrease the resampled images volume (the default resolution i.e. voxel size, given by  \verb|target_resolution|, for the fusion step (see section \ref{sec:cli:fuse:basic:use}), is set to 0.3, while it is set to 0.6 here).
+If a threshold is given, the built template will be large enough to
+include all the transformed points above the threshold. E.g., the
+background is labeled with either '1' or '0' in segmentation images,
+then a threshold of '2' ensures that all the embryo cells will not be
+cut by the resampling stage.  In this case, adding an additional
+margin to the template could be a good idea for visualization
+purpose. Last but not least, using a larger resolution than the
+\verb|target_resolution| (the resolution of the fused images) allows
+to decrease the resampled images volume. This can be achieved by
+setting \verb|intra_registration_resolution| to a larger value than
+the one of \verb|target_resolution| (default is 0.6).
 
 Thus, building a \textit{template} image after the segmentation images can be done with
 \begin{verbatim}
@@ -160,11 +170,11 @@ intra_registration_template_threshold = 2
 intra_registration_margin = 10
 \end{verbatim}
 
-Computed transformations from the \textit{template} image as well as the \textit{template} image itself are stored in \verb|INTRAREG/INTRAREG<EXP>/TRSFS_t<F>-<L>| where \verb|<F>| and \verb|L| are the first and the last index of the series (specified by \verb|begin| and \verb|end| from the parameter file).
+Computed transformations from the \textit{template} image as well as the \textit{template} image itself are stored in \verb|INTRAREG/INTRAREG<EXP>/TRSFS_t<F>-<L>/| where \verb|<F>| and \verb|L| are the first and the last index of the series (specified by \verb|begin| and \verb|end| from the parameter file).
 
 \subsubsection{Resampling fusion/segmentation images}
 \label{sec:cli:intraregistration:resampling}
-The resampled fusion and segmentation images will be stored respectively in \verb|INTRAREG/INTRAREG_<EXP>/FUSE|, \verb|INTRAREG/INTRAREG_<EXP>/SEG| and \verb|INTRAREG/INTRAREG_<EXP>/POST|. Resampling is done either if the following parameters are set to \verb|True| or if movies are requested to be computed.
+The resampled fusion and segmentation images will be stored respectively in \verb|INTRAREG/INTRAREG_<EXP>/FUSE|, \verb|INTRAREG/INTRAREG_<EXP>/SEG/| and \verb|INTRAREG/INTRAREG_<EXP>/POST/|. Resampling is done either if the following parameters are set to \verb|True| or if movies are requested to be computed.
 
 \begin{verbatim}
 # intra_registration_resample_fusion_images = True

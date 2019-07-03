@@ -87,7 +87,7 @@ end = 0
 
 
 
-# EXP_INTRAREG = ''
+# EXP_INTRAREG = 'RELEASE'
 
 ## ##### explanation #####
 ##
