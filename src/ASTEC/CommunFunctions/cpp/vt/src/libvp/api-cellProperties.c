@@ -2418,10 +2418,12 @@ void API_ParseParam_cellProperties( int firstargc, int argc, char *argv[],
               if ( _debug_ <= 0 ) _debug_ = 1;
               else                _debug_ ++;
             }
+            incrementDebugInChunks( );
           }
           else if ( (strcmp ( argv[i], "-no-debug" ) == 0 && argv[i][9] == '\0')
                     || (strcmp ( argv[i], "-nodebug" ) == 0 && argv[i][8] == '\0') ) {
               _debug_ = 0;
+              setDebugInChunks( 0 );
           }
 
           else if ( strcmp ( argv[i], "-allow-pipe" ) == 0

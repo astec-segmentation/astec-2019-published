@@ -525,6 +525,17 @@ int API_INTERMEDIARY_applyTrsf( char* theimage_name,
      *  here is the computation takes place
      *
      ************************************************************/
+    if ( _debug_ ) {
+      fprintf( stderr, "---------- %s: before call to  API_applyTrsf() ----------\n", proc );
+      fprintf( stderr, "----- " );
+      BAL_PrintImage( stderr, &theIm, "input image" );
+      fprintf( stderr, "----- " );
+      BAL_PrintImage( stderr, &resIm, "result image" );
+      fprintf( stderr, "----- " );
+      BAL_PrintTransformation( stderr, ptrTrsf, "passed transformation" );
+      fprintf( stderr, "------------------------------------------------------------\n" );
+    }
+
 
     if ( API_applyTrsf( &theIm, &resIm, ptrTrsf, param_str_1, param_str_2 ) != 1 ) {
         BAL_FreeImage( &resIm );
@@ -741,8 +752,11 @@ int API_applyTrsf( bal_image *image, bal_image *imres,
    *
    ************************************************************/
 
-  if ( _debug_ )
+  if ( _debug_ ) {
+      fprintf( stderr, "---------- %s ----------------------------------------\n", proc  );
       BAL_PrintTransformation( stderr, trsf, "resampling transformation" );
+      fprintf( stderr, "------------------------------------------------------------\n" );
+  }
 
   switch( par.interpolation ) {
   default :

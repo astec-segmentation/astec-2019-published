@@ -224,7 +224,8 @@ int API_INTERMEDIARY_copyTrsf( char *thetrsf_name,
   if ( param_str_2 != (char*)NULL )
       _API_ParseParam_copyTrsf( param_str_2, &par );
 
-
+  if ( par.print_lineCmdParam )
+      API_PrintParam_copyTrsf( stderr, proc, &par, (char*)NULL );
 
   /***************************************************
    *
@@ -305,9 +306,9 @@ int API_INTERMEDIARY_copyTrsf( char *thetrsf_name,
           return( -1 );
       }
       BAL_FreeImage( &imRead );
-      if ( par.voxel.x > 0.0 ) imReference.vx = par.voxel.x;
-      if ( par.voxel.y > 0.0 ) imReference.vy = par.voxel.y;
-      if ( par.voxel.z > 0.0 ) imReference.vz = par.voxel.z;
+      if ( par.template_voxel.x > 0.0 ) imReference.vx = par.template_voxel.x;
+      if ( par.template_voxel.y > 0.0 ) imReference.vy = par.template_voxel.y;
+      if ( par.template_voxel.z > 0.0 ) imReference.vz = par.template_voxel.z;
       if ( BAL_SetImageVoxelSizes( &imReference, imReference.vx, imReference.vy, imReference.vz ) != 1 ) {
           BAL_FreeImage( &imReference );
           BAL_FreeTransformation( &theTransformation );
@@ -318,12 +319,12 @@ int API_INTERMEDIARY_copyTrsf( char *thetrsf_name,
       ptrReference = &imReference;
     }
 
-    /* initializing result image
+    /* initializing reference image
        - with parameters, if any
     */
-    else if ( par.dim.x > 0 && par.dim.y > 0 ) {
-      if ( par.dim.z > 0 ) {
-        if ( BAL_InitImage( &imReference, (char*)NULL, par.dim.x, par.dim.y, par.dim.z, 1, UCHAR ) != 1 ) {
+    else if ( par.template_dim.x > 0 && par.template_dim.y > 0 ) {
+      if ( par.template_dim.z > 0 ) {
+        if ( BAL_InitImage( &imReference, (char*)NULL, par.template_dim.x, par.template_dim.y, par.template_dim.z, 1, UCHAR ) != 1 ) {
           if ( _verbose_ )
             fprintf( stderr, "%s: unable to initialize template/reference image\n", proc );
           BAL_FreeTransformation( &theTransformation );
@@ -331,16 +332,16 @@ int API_INTERMEDIARY_copyTrsf( char *thetrsf_name,
         }
       }
       else {
-        if ( BAL_InitImage( &imReference, (char*)NULL, par.dim.x, par.dim.y, 1, 1, UCHAR ) != 1 ) {
+        if ( BAL_InitImage( &imReference, (char*)NULL, par.template_dim.x, par.template_dim.y, 1, 1, UCHAR ) != 1 ) {
           if ( _verbose_ )
             fprintf( stderr, "%s: unable to initialize template/reference image (dimz=1) \n", proc );
           BAL_FreeTransformation( &theTransformation );
           return( -1 );
         }
       }
-      if ( par.voxel.x > 0.0 ) imReference.vx = par.voxel.x;
-      if ( par.voxel.y > 0.0 ) imReference.vy = par.voxel.y;
-      if ( par.voxel.z > 0.0 ) imReference.vz = par.voxel.z;
+      if ( par.template_voxel.x > 0.0 ) imReference.vx = par.template_voxel.x;
+      if ( par.template_voxel.y > 0.0 ) imReference.vy = par.template_voxel.y;
+      if ( par.template_voxel.z > 0.0 ) imReference.vz = par.template_voxel.z;
       if ( BAL_SetImageVoxelSizes( &imReference, imReference.vx, imReference.vy, imReference.vz ) != 1 ) {
           BAL_FreeImage( &imReference );
           BAL_FreeTransformation( &theTransformation );
@@ -395,10 +396,20 @@ int API_INTERMEDIARY_copyTrsf( char *thetrsf_name,
           return( -1 );
       }
       BAL_FreeImage( &imRead );
+      if ( par.floating_voxel.x > 0.0 && par.floating_voxel.y > 0.0 ) {
+        if ( par.floating_voxel.x > 0.0 ) imFloating.vx = par.floating_voxel.x;
+        if ( par.floating_voxel.y > 0.0 ) imFloating.vy = par.floating_voxel.y;
+        if ( par.floating_voxel.z > 0.0 ) imFloating.vz = par.floating_voxel.z;
+        if ( BAL_SetImageVoxelSizes( &imFloating, imFloating.vx, imFloating.vy, imFloating.vz ) != 1 ) {
+          if ( _verbose_ )
+            fprintf( stderr, "%s: unable to change input image voxel sizes\n", proc );
+          return(-1);
+        }
+      }
       ptrFloating = &imFloating;
     }
-    else {
 
+    else {
       /* choice:
        * 1. if no floating image, use the reference one
        * 2. force to give a floating image
@@ -571,14 +582,26 @@ int API_INTERMEDIARY_copyTrsf( char *thetrsf_name,
       break;
 
     case REAL_UNIT :
-      if ( _debug_ )
-        fprintf( stderr, "%s: converting from VOXEL to REAL\n", proc );
+      if ( _debug_ ) {
+        fprintf( stderr, "---------- %s: converting from VOXEL to REAL\n", proc );
+        fprintf( stderr, "----- " );
+        BAL_PrintImage( stderr, ptrFloating, "floating image" );
+        fprintf( stderr, "----- " );
+        BAL_PrintImage( stderr, ptrReference, "reference image" );
+        fprintf( stderr, "----- " );
+        BAL_PrintTransformation( stderr, resTrsf, "input transformation" );
+      }
       if ( BAL_ChangeTransformationToRealUnit( ptrFloating, ptrReference, resTrsf, resTrsf ) != 1 ) {
         BAL_FreeTransformation( &resTransformation );
         BAL_FreeTransformation( &theTransformation );
         if ( _verbose_ )
           fprintf( stderr, "%s: unable to convert from VOXEL to REAL\n", proc );
         return( -1 );
+      }
+      if ( _debug_ ) {
+        fprintf( stderr, "----- " );
+        BAL_PrintTransformation( stderr, resTrsf, "result transformation" );
+        fprintf( stderr, "------------------------------------------------------------\n" );
       }
       break;
     }
@@ -789,11 +812,12 @@ static char **_Str2Array( int *argc, char *str )
 /*----------------------------------------------------------------------------*/
 static char *usage = "[transformation-in] [transformation-out]\n\
  [-transformation-type|-transformation|-trsf-type %s]\n\
- [-template|-t|-dims|-reference|-ref %s]\n\
- [-dim %d %d [%d]]\n\
- [-voxel | -pixel | -vs %f %f [%f]]\n\
  [-input-unit | -iu %s] [-output-unit | -ou %s]\n\
+ [-template|-t|-dims|-reference|-ref %s]\n\
  [-floating|-flo %s]\n\
+ [-template-dimension[s]|-template-dim|-dimension[s]|-dim %d %d [%d]]\n\
+ n\
+ [-floating-voxel %lf %lf [%lf]]\n\
  [-parallel|-no-parallel] [-max-chunks %d]\n\
  [-parallelism-type|-parallel-type default|none|openmp|omp|pthread|thread]\n\
  [-omp-scheduling|-omps default|static|dynamic-one|dynamic|guided]\n\
@@ -814,27 +838,34 @@ static char *detail = "\
   translation2D, translation3D, translation-scaling2D, translation-scaling3D,\n\
   rigid2D, rigid3D, rigid, similitude2D, similitude3D, similitude,\n\
   affine2D, affine3D, affine, vectorfield2D, vectorfield3D, vectorfield, vector\n\
-### template image ###\n\
-  When copying/converting a matrix into a vectorfield, the vectorial image\n\
-  defining the vectorfield will be created with the geometry of the template\n\
-  image.\n\
-[-template|-t|-dims|-reference|-ref %s] # template image for the dimensions\n\
-                         of the output image\n\
-[-dim %d %d [%d]]      # output image dimensions\n\
-[-voxel|-pixel|-vs %f %f [%f]]    # output image voxel sizes\n\
 ### to change the unit of the transformation\n\
   requires to known voxel sizes of both the floating/input\n\
   and reference/template. Recall that the transformation goes\n\
   from reference to floating.\n\
 [-input-unit  [voxel|real]] #\n\
 [-output-unit [voxel|real]] #\n\
-### ...\n\
-[-floating|-flo %s]         # template image for conversion between real and voxel units\n\
+### template/reference image ###\n\
+  When copying/converting a matrix into a vectorfield, the vectorial image\n\
+  defining the vectorfield will be created with the geometry of the template\n\
+  image.\n\
+[-template|-t|-dims|-reference|-ref %s] # template image for the dimensions\n\
+                         of the template image\n\
+[-template-dimension[s]|-template-dim|-dimension[s]|-dim %d %d [%d]] ...\n\
+  # template image dimensions\n\
+[-reference-voxel|-template-voxel|-voxel-size|-voxel|-pixel|-vs %lf %lf [%lf]] ...\n\
+  # template image voxel sizes\n\
+  # changes the reference image voxel sizes if a reference image have been read\n\
+### floating image #### \n\
+  When converting between real and voxel units, both the source (floating) and \n\
+  and the target (reference) image geometries have to be known\n\
   The conversion from real to voxel units is done by calculating\n\
   H^{-1}_floating o T_input o H_template\n\
   while the conversion from voxel to real units is done by calculating\n\
   H_floating o T_input o H^{-1}_template\n\
   H_{image} being the diagonal matrix of the image voxel sizes\n\
+[-floating|-flo %s]         # template image for conversion between real and voxel units\n\
+[-floating-voxel %lf %lf [%lf]] # \n\
+     changes the voxel sizes of the input/floating image\n\
 # ...\n\
 # parallelism parameters\n\
  -parallel|-no-parallel:\n\
@@ -913,21 +944,25 @@ void API_InitParam_copyTrsf( lineCmdParamCopyTrsf *p )
     (void)strncpy( p->thetrsf_name, "\0", 1 );
     (void)strncpy( p->restrsf_name, "\0", 1 );
 
+    p->transformation_type = UNDEF_TRANSFORMATION;
+
     p->thetrsf_unit = REAL_UNIT;
     p->restrsf_unit = REAL_UNIT;
 
     (void)strncpy( p->template_image_name, "\0", 1 );
     (void)strncpy( p->floating_image_name, "\0", 1 );
 
-    p->dim.x = 256;
-    p->dim.y = 256;
-    p->dim.z = 256;
+    p->template_dim.x = 0;
+    p->template_dim.y = 0;
+    p->template_dim.z = 0;
 
-    p->voxel.x = 1.0;
-    p->voxel.y = 1.0;
-    p->voxel.z = 1.0;
+    p->template_voxel.x = -1.0;
+    p->template_voxel.y = -1.0;
+    p->template_voxel.z = -1.0;
 
-    p->transformation_type = UNDEF_TRANSFORMATION;
+    p->floating_voxel.x = -1.0;
+    p->floating_voxel.y = -1.0;
+    p->floating_voxel.z = -1.0;
 
     p->print_lineCmdParam = 0;
     p->print_time = 0;
@@ -971,15 +1006,6 @@ void API_PrintParam_copyTrsf( FILE *theFile, char *program,
 
   BAL_PrintTypeTransformation( f, p->transformation_type, "p->transformation_type = " );
 
-  fprintf( f, "- p->template_image_name = " );
-  if ( p->template_image_name != (char*)NULL && p->template_image_name[0] != '\0' )
-    fprintf( f, "'%s'\n", p->template_image_name );
-  else
-    fprintf( f, "'NULL'\n" );
-
-  BAL_PrintIntegerPoint( f, &(p->dim), "- p->dim = " );
-  BAL_PrintDoublePoint( f, &(p->voxel), "- p->voxel = " );
-
   fprintf( f, "- p->thetrsf_unit = " );
   switch( p->thetrsf_unit ) {
   case UNDEF_UNIT : fprintf( f, "UNDEF_UNIT\n" ); break;
@@ -994,11 +1020,21 @@ void API_PrintParam_copyTrsf( FILE *theFile, char *program,
   case REAL_UNIT :  fprintf( f, "REAL_UNIT\n" ); break;
   }
 
+  fprintf( f, "- p->template_image_name = " );
+  if ( p->template_image_name != (char*)NULL && p->template_image_name[0] != '\0' )
+    fprintf( f, "'%s'\n", p->template_image_name );
+  else
+    fprintf( f, "'NULL'\n" );
+
   fprintf( f, "- p->floating_image_name = " );
   if ( p->floating_image_name != (char*)NULL && p->floating_image_name[0] != '\0' )
     fprintf( f, "'%s'\n", p->floating_image_name );
   else
     fprintf( f, "'NULL'\n" );
+
+  BAL_PrintIntegerPoint( f, &(p->template_dim), "- p->template_dim = " );
+  BAL_PrintDoublePoint( f, &(p->template_voxel), "- p->template_voxel = " );
+  BAL_PrintDoublePoint( f, &(p->floating_voxel), "- p->floating_voxel = " );
 
   fprintf( f, "==================================================\n" );
 }
@@ -1156,58 +1192,6 @@ void API_ParseParam_copyTrsf( int firstargc, int argc, char *argv[],
          }
       }
 
-      else if ( strcmp ( argv[i], "-template") == 0
-                || (strcmp ( argv[i], "-t") == 0 && argv[i][2] == '\0')
-                || (strcmp ( argv[i], "-dims") == 0 && argv[i][5] == '\0')
-                ||  strcmp ( argv[i], "-reference") == 0
-                || (strcmp ( argv[i], "-ref") == 0 && argv[i][4] == '\0') ) {
-        i++;
-        if ( i >= argc) API_ErrorParse_copyTrsf( (char*)NULL, "parsing -template", 0 );
-        (void)strcpy( p->template_image_name, argv[i] );
-      }
-
-      else if ( strcmp (argv[i], "-dim" ) == 0 && argv[i][4] == '\0' ) {
-        i ++;
-        if ( i >= argc)    API_ErrorParse_copyTrsf( (char*)NULL, "parsing -dim %d", 0 );
-        status = sscanf( argv[i], "%d", &(p->dim.x) );
-        if ( status <= 0 ) API_ErrorParse_copyTrsf( (char*)NULL, "parsing -dim %d", 0 );
-        i ++;
-        if ( i >= argc)    API_ErrorParse_copyTrsf( (char*)NULL, "parsing -dim %d %d", 0 );
-        status = sscanf( argv[i], "%d", &(p->dim.y) );
-        if ( status <= 0 ) API_ErrorParse_copyTrsf( (char*)NULL, "parsing -dim %d %d", 0 );
-        i ++;
-        if ( i >= argc) p->dim.z = 1;
-        else {
-          status = sscanf( argv[i], "%d", &(p->dim.z) );
-          if ( status <= 0 ) {
-            i--;
-            p->dim.z = 1;
-          }
-        }
-      }
-
-      else if ( strcmp (argv[i], "-voxel" ) == 0
-                || strcmp ( argv[i], "-pixel" ) == 0
-                || (strcmp ( argv[i], "-vs" ) == 0  && argv[i][3] == '\0') ) {
-        i ++;
-        if ( i >= argc)    API_ErrorParse_copyTrsf( (char*)NULL, "parsing -voxel %lf", 0 );
-        status = sscanf( argv[i], "%lf", &(p->voxel.x) );
-        if ( status <= 0 ) API_ErrorParse_copyTrsf( (char*)NULL, "parsing -voxel %lf", 0 );
-        i ++;
-        if ( i >= argc)    API_ErrorParse_copyTrsf( (char*)NULL, "parsing -voxel %lf %lf", 0 );
-        status = sscanf( argv[i], "%lf", &(p->voxel.y) );
-        if ( status <= 0 ) API_ErrorParse_copyTrsf( (char*)NULL, "parsing -voxel %lf %lf", 0 );
-        i ++;
-        if ( i >= argc) p->voxel.z = 1;
-        else {
-          status = sscanf( argv[i], "%lf", &(p->voxel.z) );
-          if ( status <= 0 ) {
-            i--;
-            p->voxel.z = 1;
-          }
-        }
-      }
-
       else if ( strcmp ( argv[i], "-input-unit" ) == 0
                 || ( strcmp ( argv[i], "-iu" ) == 0 && argv[i][3] == '\0' ) ) {
           i ++;
@@ -1240,12 +1224,98 @@ void API_ParseParam_copyTrsf( int firstargc, int argc, char *argv[],
           }
       }
 
+
+      else if ( strcmp ( argv[i], "-reference-image") == 0
+                   || (strcmp ( argv[i], "-reference") == 0 && argv[i][10] == '\0')
+                   || (strcmp ( argv[i], "-ref") == 0 && argv[i][4] == '\0')
+                   || strcmp ( argv[i], "-template-image") == 0
+                   || (strcmp ( argv[i], "-template") == 0 && argv[i][9] == '\0')
+                   || (strcmp ( argv[i], "-dims") == 0 && argv[i][5] == '\0')
+                   || (strcmp ( argv[i], "-t") == 0 && argv[i][2] == '\0') ) {
+        i++;
+        if ( i >= argc) API_ErrorParse_copyTrsf( (char*)NULL, "parsing -reference-image", 0 );
+        (void)strcpy( p->template_image_name, argv[i] );
+      }
+
       else if ( strcmp ( argv[i], "-floating") == 0
                 || (strcmp ( argv[i], "-flo") == 0 && argv[i][4] == '\0') ) {
           i++;
           if ( i >= argc) API_ErrorParse_copyTrsf( (char*)NULL, "parsing -floating", 0 );
           (void)strcpy( p->floating_image_name, argv[i] );
       }
+
+      else if ( strcmp ( argv[i], "-reference-dimensions") == 0
+                || strcmp ( argv[i], "-reference-dimension") == 0
+                || strcmp ( argv[i], "-template-dimensions") == 0
+                || strcmp ( argv[i], "-template-dimension") == 0
+                || strcmp ( argv[i], "-template-dim") == 0
+                || strcmp ( argv[i], "-dimensions") == 0
+                || strcmp ( argv[i], "-dimension") == 0
+                || (strcmp (argv[i], "-dim" ) == 0 && argv[i][4] == '\0') ) {
+        i ++;
+        if ( i >= argc)    API_ErrorParse_copyTrsf( (char*)NULL, "parsing -template-dimensions %d", 0 );
+        status = sscanf( argv[i], "%d", &(p->template_dim.x) );
+        if ( status <= 0 ) API_ErrorParse_copyTrsf( (char*)NULL, "parsing -template-dimensions %d", 0 );
+        i ++;
+        if ( i >= argc)    API_ErrorParse_copyTrsf( (char*)NULL, "parsing -template-dimensions %d %d", 0 );
+        status = sscanf( argv[i], "%d", &(p->template_dim.y) );
+        if ( status <= 0 ) API_ErrorParse_copyTrsf( (char*)NULL, "parsing -template-dimensions %d %d", 0 );
+        i ++;
+        if ( i >= argc) p->template_dim.z = 1;
+        else {
+          status = sscanf( argv[i], "%d", &(p->template_dim.z) );
+          if ( status <= 0 ) {
+            i--;
+            p->template_dim.z = 1;
+          }
+        }
+      }
+
+      else if ( strcmp ( argv[i], "-reference-voxel") == 0
+                || strcmp ( argv[i], "-template-voxel") == 0
+                || strcmp ( argv[i], "-voxel-size") == 0
+                || (strcmp (argv[i], "-voxel" ) == 0 && argv[i][6] == '\0')
+                || (strcmp (argv[i], "-pixel" ) == 0 && argv[i][6] == '\0')
+                || (strcmp (argv[i], "-vs" ) == 0 && argv[i][3] == '\0') ) {
+        i ++;
+        if ( i >= argc)    API_ErrorParse_copyTrsf( (char*)NULL, "parsing -template-voxel %lf", 0 );
+        status = sscanf( argv[i], "%lf", &(p->template_voxel.x) );
+        if ( status <= 0 ) API_ErrorParse_copyTrsf( (char*)NULL, "parsing -template-voxel %lf", 0 );
+        i ++;
+        if ( i >= argc)    API_ErrorParse_copyTrsf( (char*)NULL, "parsing -template-voxel %lf %lf", 0 );
+        status = sscanf( argv[i], "%lf", &(p->template_voxel.y) );
+        if ( status <= 0 ) API_ErrorParse_copyTrsf( (char*)NULL, "parsing -template-voxel %lf %lf", 0 );
+        i ++;
+        if ( i >= argc) p->template_voxel.z = 1;
+        else {
+          status = sscanf( argv[i], "%lf", &(p->template_voxel.z) );
+          if ( status <= 0 ) {
+            i--;
+            p->template_voxel.z = 1;
+          }
+        }
+      }
+
+      else if ( strcmp ( argv[i], "-floating-voxel") == 0 ) {
+        i ++;
+        if ( i >= argc)    API_ErrorParse_copyTrsf( (char*)NULL, "parsing -floating-voxel %lf", 0 );
+        status = sscanf( argv[i], "%lf", &(p->floating_voxel.x) );
+        if ( status <= 0 ) API_ErrorParse_copyTrsf( (char*)NULL, "parsing -floating-voxel %lf", 0 );
+        i ++;
+        if ( i >= argc)    API_ErrorParse_copyTrsf( (char*)NULL, "parsing -floating-voxel %lf %lf", 0 );
+        status = sscanf( argv[i], "%lf", &(p->floating_voxel.y) );
+        if ( status <= 0 ) API_ErrorParse_copyTrsf( (char*)NULL, "parsing -floating-voxel %lf %lf", 0 );
+        i ++;
+        if ( i >= argc) p->floating_voxel.z = 1;
+        else {
+          status = sscanf( argv[i], "%lf", &(p->floating_voxel.z) );
+          if ( status <= 0 ) {
+            i--;
+            p->floating_voxel.z = 1;
+          }
+        }
+      }
+
 
       /* ...
        */

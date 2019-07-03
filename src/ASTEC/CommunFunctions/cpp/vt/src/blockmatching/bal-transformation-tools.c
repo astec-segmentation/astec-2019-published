@@ -1328,6 +1328,13 @@ int BAL_ResampleImage( bal_image *image, bal_image *resImage,
         return( -1 );
     }
 
+    if ( _debug_ ) {
+      fprintf( stderr, "---------- %s ----------------------------------------\n", proc  );
+      BAL_PrintTransformation( stderr, &voxTr, "resampling voxel transformation" );
+      fprintf( stderr, "------------------------------------------------------------\n" );
+
+    }
+
     switch ( interpolation ) {
     default :
         BAL_FreeTransformation( &voxTr );

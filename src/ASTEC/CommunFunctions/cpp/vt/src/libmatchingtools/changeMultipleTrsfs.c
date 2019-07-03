@@ -133,6 +133,8 @@ as the new transformations\n\
              # one template per transformation\n\
 [-threshold|-t %d] # threshold on input templates/images to compute the\n\
              # useful bounding box (else it is the entire image)\n\
+             # points whose values are greater or equal to the\n\
+             # threshold are kept in the template\n\
 [-template-voxel|-voxel-size|-voxel|-pixel|-vs %lf %lf [%lf]] #\n\
              # change the voxel sizes of the input template\n\
              # (when a single input template is given)\n\
