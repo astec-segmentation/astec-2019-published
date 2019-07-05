@@ -44,16 +44,20 @@ typedef struct lineCmdParamCopyTrsf {
   char restrsf_name[STRINGLENGTH];
 
   enumTypeTransfo transformation_type;
-
-  char template_image_name[STRINGLENGTH];
-
-  bal_integerPoint dim;
-  bal_doublePoint voxel;
-
   enumUnitTransfo thetrsf_unit;
   enumUnitTransfo restrsf_unit;
 
+  char template_image_name[STRINGLENGTH];
   char floating_image_name[STRINGLENGTH];
+
+  /* template / reference (geometry of reference image)
+   */
+  bal_integerPoint template_dim;
+  bal_doublePoint template_voxel;
+
+  /* floating image
+   */
+  bal_doublePoint floating_voxel;
 
   /* general parameters
    */
