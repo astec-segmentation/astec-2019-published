@@ -76,11 +76,10 @@ def _write_error_msg(text, monitoring):
         print(text)
 
 
-def _find_exec(executable_file, monitoring=None):
+def __find_exec(executable_file):
     """
     Try to find the executable file 'executable_file'
     :param executable_file:
-    :param monitoring:
     :return:
     """
     cmd = 'which' + ' ' + str(executable_file)
@@ -96,9 +95,22 @@ def _find_exec(executable_file, monitoring=None):
         if os.path.isfile(try_file):
             return try_file
 
+        return None
+
+    return path_to_exec
+
+def _find_exec(executable_file, monitoring=None):
+    """
+    Try to find the executable file 'executable_file'
+    :param executable_file:
+    :param monitoring:
+    :return:
+    """
+    path_to_exec = __find_exec(executable_file)
+
+    if path_to_exec is None:
         _write_error_msg("findExec: can not find executable '" + str(executable_file) + "'", monitoring)
         _write_error_msg("... Exiting", monitoring)
-
         sys.exit(1)
 
     return path_to_exec
@@ -106,17 +118,10 @@ def _find_exec(executable_file, monitoring=None):
 
 def path_to_vt():
     """
-    Try to find the executable file 'executable_file'
-    :return:
     """
-    cmd = 'which blockmatching'
-    path_to_exec = ""
-    try:
-        which_exec = subprocess.check_output(cmd, shell=True)
-        path_to_exec = which_exec.split('\n')[0]
-    except subprocess.CalledProcessError:
+    path_to_exec = __find_exec('blockmatching')
+    if path_to_exec is None:
         return None
-
     return os.path.dirname(path_to_exec)
 
 
