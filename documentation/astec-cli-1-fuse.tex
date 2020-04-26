@@ -3,18 +3,22 @@
 
 The fusion is made of the following steps.
 \begin{enumerate}
-\itemsep -1ex
+\itemsep -0.5ex
 \item \label{it:fusion:slit:line} Optionally, a slit line correction. Some Y lines may appear brighter in the acquisition and causes artifacts in the reconstructed (i.e. fused) image. By default, it is not done.
 
 \item A change of resolution in the X and Y directions only (Z remains unchanged). It allows to decrease the data volume (and then the computational cost) if the new pixel size (set by \verb|target_resolution|) is larger than the acquisition one.
 
 \item \label{it:fusion:crop:1} Optionally, a crop of the resampled acquisitions. It allows to decrease the volume of data, hence the computational cost. The crop is based on the analysis of a MIP view (in the Z direction) of  the volume, and thus is sensitive to hyper-intensities if any. By default, it is done.
 
-\item Optionally, a mirroring of the 'right' image. It depends on the value of  \verb|raw_mirrors| variable.
+\item Optionally, a mirroring (along the \textbf{X} axis) of the right camera image. It depends on the value of  \verb|raw_mirrors| variable.
 
 \item \label{it:fusion:registration} Linear registration of the 3 last images on the first one (considered as the reference). The reference image is resampled again, to get an isotropic voxel (whose size is given by \verb|target_resolution|), i.e. the voxel size is the same along the 3 directions: X, Y, Z.
 
-\item Linear combination of images, weighted by an ad-hoc function.
+\item Linear combination of images, weighted by an ad-hoc function. 
+\begin{description}
+\item[Important:] The used weighting function assumes that the stacking order in the Z direction is increasing, meaning that high-contrasted images are at the beginning of the stack (small z values) while blurred ones at the end, as in figure \ref{fig:cli:fuse:spim:right:acquisition}.
+% https://github.com/astec-segmentation/astec
+\end{description}
 
 \item  \label{it:fusion:crop:2} Optionally, a crop of the fused image, still based on the analysis of a MIP view (in the Z direction). By default, it is done.
 \end{enumerate}
@@ -43,6 +47,22 @@ The following options are available:
 \item[\texttt{-nd}] no debug information
 \end{description}
 
+\begin{figure}
+\begin{center}
+\includegraphics[width=150mm]{figures/acquisition-spim-right.png}
+\end{center}
+\caption{\label{fig:cli:fuse:spim:right:acquisition} Multiview lightsheet microscope acquisition: at a time point, two acquisitions (stack \#0 and stack \#1) are sequentially performed, the second one orthogonal to the first. For each acquisition, two 3D intensity image stacks are acquired, respectively by the left and the right cameras. 
+It yields four image stacks to be fused. 
+The frame $(\mathbf{X}, \mathbf{Z})$ of the left camera of stack \#0 needs to be rotated clockwise (90 degrees along the $\mathbf{Y}$ axis) to correspond to the frame of the left camera of stack \#1: \texttt{raw\_ori} has to be set to \texttt{'right'}.}
+\end{figure}
+
+\begin{figure}
+\begin{center}
+\includegraphics[width=150mm]{figures/acquisition-spim-left.png}
+\end{center}
+\caption{\label{fig:cli:fuse:spim:left:acquisition} The frame $(\mathbf{X}, \mathbf{Z})$ of the left camera of stack \#0 needs to be rotated counterclockwise (-90 degrees along the $\mathbf{Y}$ axis) to correspond to the frame of the left camera of stack \#1: \texttt{raw\_ori} has to be set to \texttt{'left'}.}
+\end{figure}
+
 
 \subsection{Important parameters in the parameter file}
 \label{sec:cli:fuse:important:parameters}
@@ -58,10 +78,9 @@ acquisition parameters is crucial; these parameters are
 \item \texttt{raw\_ori} is a parameter describing the acquisition
   orientation of the acquisition of the second pair of images. Its value can be either \texttt{'left'} (orientation of
   $270 \degree$) or \texttt{'right'} (orientation of
-  $90 \degree$).
+  $90 \degree$), see figures \ref{fig:cli:fuse:spim:right:acquisition} and \ref{fig:cli:fuse:spim:left:acquisition}.
 \item \texttt{raw\_mirrors} is a parameter indicating whether the
-  right camera images have to be mirrored or not. Its value is either
-  \texttt{False} or \texttt{True}.
+  right camera images have been mirrored along the \textbf{X} axis or not. Its value is either \texttt{False} or \texttt{True}. For acquisitions depicted in figures \ref{fig:cli:fuse:spim:right:acquisition} and \ref{fig:cli:fuse:spim:left:acquisition}, it has to be set to \texttt{False}, meaning that the mirroring has to be done.
 \item \texttt{raw\_resolution} is the voxel size (along the 3
     dimensions X, Y and Z) of the acquired images.
 \item \texttt{target\_resolution} is the desired isotropic (the
